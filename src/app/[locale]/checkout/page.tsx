@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, CreditCard, ChevronRight, CheckCircle2, Upload, QrCode, ShieldCheck, ArrowLeft, Globe } from 'lucide-react';
+import { Mail, CheckCircle2, Upload, QrCode, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { useCart } from '@/context/CartContext';
 import { useTranslations, useLocale } from 'next-intl';
@@ -13,10 +13,12 @@ export default function CheckoutPage() {
   const ui = useTranslations('UI');
   const locale = useLocale();
   const isRtl = locale === 'ar';
-  const { subtotal, formatPrice } = useCart();
+  const { cart, subtotal, formatPrice, clearCart } = useCart();
   const [currentStep, setCurrentStep] = useState(0);
   const [email, setEmail] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const STEPS = [
     { id: 'email', title: t('steps.email') },
@@ -32,7 +34,23 @@ export default function CheckoutPage() {
     { id: 'fastpay', name: d('methods.fastpay'), icon: '/icons/fastpay.png', account: '4000 4444 5555' },
   ];
 
+  const [methods, setMethods] = useState(METHODS);
   const [selectedMethod, setSelectedMethod] = useState(METHODS[0]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch('/api/payment-methods')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((payload) => {
+        if (!payload || cancelled || !Array.isArray(payload.methods) || payload.methods.length === 0) return;
+        setMethods(payload.methods);
+        setSelectedMethod(payload.methods[0]);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
@@ -41,6 +59,50 @@ export default function CheckoutPage() {
     initial: { opacity: 0, x: isRtl ? -20 : 20 },
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: isRtl ? 20 : -20 },
+  };
+
+  const submitOrder = async () => {
+    if (!file || cart.length === 0) return;
+    try {
+      setSubmitError('');
+      setIsSubmitting(true);
+      const form = new FormData();
+      form.set('email', email);
+      form.set('locale', locale);
+      form.set('paymentMethodId', selectedMethod.id);
+      form.set('subtotal', String(subtotal));
+      form.set(
+        'items',
+        JSON.stringify(
+          cart.map((item) => ({
+            id: String(item.id),
+            title: item.title,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+          })),
+        ),
+      );
+      form.set('receipt', file);
+
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        body: form,
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error ?? 'Order failed');
+      }
+      clearCart();
+      alert(`${ui('orderSubmitted')} #${payload.order?.id ?? ''}`);
+      setCurrentStep(0);
+      setFile(null);
+      setEmail('');
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : ui('noResults'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -121,7 +183,7 @@ export default function CheckoutPage() {
                   <p className="text-sm text-white/40">{t('chooseMethodDesc')}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {METHODS.map((method) => (
+                  {methods.map((method) => (
                     <button 
                       key={method.id} 
                       onClick={() => setSelectedMethod(method)}
@@ -232,14 +294,20 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 )}
+                {submitError && (
+                  <div className="text-xs text-red-300 border border-red-400/30 rounded-xl p-3 bg-red-500/10">
+                    {submitError}
+                  </div>
+                )}
 
                 <div className="flex gap-4">
                   <button onClick={prevStep} className="flex-1 py-5 border border-white/10 text-white/40 font-black rounded-2xl hover:bg-white/5 transition-all outline-none uppercase tracking-widest">{ui('back')}</button>
                   <button 
-                    onClick={() => alert(ui('orderSubmitted'))} 
-                    className="flex-[2] py-5 bg-brand-orange text-white font-black rounded-2xl shadow-xl hover:bg-brand-orange/90 active:scale-95 transition-all outline-none uppercase tracking-widest"
+                    onClick={submitOrder}
+                    disabled={!file || isSubmitting || cart.length === 0}
+                    className="flex-[2] py-5 bg-brand-orange text-white font-black rounded-2xl shadow-xl hover:bg-brand-orange/90 active:scale-95 transition-all outline-none uppercase tracking-widest disabled:opacity-50 disabled:pointer-events-none"
                   >
-                    {t('submitOrder')}
+                    {isSubmitting ? `${t('submitOrder')}...` : t('submitOrder')}
                   </button>
                 </div>
               </motion.div>
