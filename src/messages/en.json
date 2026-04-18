@@ -1,0 +1,224 @@
+{
+  "Header": {
+    "search": "Search for games, gift cards, keys...",
+    "trending": "Trending Now",
+    "cart": "Cart",
+    "videoGames": "Video Games",
+    "giftCards": "Gift Cards",
+    "software": "Software",
+    "all": "View All",
+    "results": "Results",
+    "trendingGames": {
+      "ps": "PlayStation",
+      "steam": "Steam",
+      "xbox": "Xbox"
+    },
+    "categories": {
+      "games": "Video Games",
+      "cards": "Gift Cards",
+      "psn": "PlayStation",
+      "xbox": "Xbox",
+      "software": "Software"
+    },
+    "latest": "Latest Releases",
+    "top": "Top Sellers",
+    "sale": "On Sale",
+    "languages": {
+      "ar": "العربية",
+      "en": "English"
+    },
+    "currencies": {
+      "IQD": "IQD",
+      "USD": "$ USD",
+      "EUR": "€ EUR"
+    }
+  },
+  "Cart": {
+    "title": "Shopping Cart",
+    "empty": "is empty",
+    "emptyDescription": "You haven't added any games to your cart yet. Explore our store for the best deals.",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "checkout": "Checkout",
+    "discountCode": "Discount Code",
+    "apply": "Apply",
+    "items": "Items",
+    "quantity": "Qty",
+    "remove": "Remove",
+    "summary": "Order Summary",
+    "backToStore": "Back to Store",
+    "digitalDetail": "Digital License • Online Activation",
+    "discountLabel": "Discount (10%)",
+    "encrypted": "Encrypted Processing",
+    "discountPlaceholder": "SAVE10"
+  },
+  "Product": {
+    "buyNow": "Buy Now",
+    "addToCart": "Add to Cart",
+    "description": "Product Description",
+    "platform": "Platform",
+    "region": "Region",
+    "delivery": "Instant Delivery",
+    "trending": "Trending Now",
+    "store": "Store",
+    "global": "Global",
+    "protection": "GTX GUARDIAN PROTECTION",
+    "verified": "100% Verified Transaction",
+    "descriptionLabel": "Overview & Story",
+    "videosHeading": "Videos",
+    "details": "Details",
+    "descriptions": {
+      "elden": "The Shadow of the Erdtree expansion features an all-new story set in the Land of Shadow imbued with mystery, perilous dungeons, and new enemies, weapons and equipment. Discover uncharted territories, face formidable adversaries, and revel in the satisfying triumph of victory.",
+      "cyber": "Live the ultimate power fantasy in Night City with the Phantom Liberty expansion. As the mercenary V, plunge into a world of cyber-crimes and politics in an intense, espionage-thriller adventure, now fully optimized for next-gen.",
+      "fc": "Build your dream squad in FC 25 with massive gameplay improvements and the all-new tactical system. Dominate the pitch with the world's best players and experience the most realistic football ever created.",
+      "god": "The Norse saga of Kratos and Atreus continues in the Nine Realms. With Ragnarök approaching, face gods and monsters in epic battles and a moving story about destiny and loyalty.",
+      "wukong": "Inspired by the classic Chinese novel 'Journey to the West', embark on a journey as 'The Chosen One' to encounter challenges and discover the truth behind a glorious legend from the past in a visually stunning Action RPG.",
+      "ps10": "PlayStation Store $10 Wallet Top-up. Valid for US accounts. Get instant access to buy games, add-ons, and more directly from the store.",
+      "xbox20": "Xbox Digital Gift Card $20. Valid for US accounts. Enjoy the latest games, Game Pass subscriptions, and exclusive content.",
+      "steam50": "Steam Wallet Code $50. Valid Globally. Add funds to your Steam account and enjoy thousands of games and seasonal sales."
+    }
+  },
+  "Home": {
+    "trendingTitle": "Trending",
+    "now": "Now",
+    "heroLoading": "Loading featured products…",
+    "heroEmpty": "No products to show yet. Sync the catalog or browse the store.",
+    "heroBrowse": "Browse catalog",
+    "heroNoDescription": "Digital key · Instant delivery",
+    "viewAll": "View All",
+    "instantAccess": "Instant Access",
+    "instantAccessDesc": "Get your digital keys instantly via email and your account dashboard.",
+    "premiumSupport": "Premium Support",
+    "premiumSupportDesc": "Dedicated support team working 24/7 to help you with any inquiries.",
+    "bestPrices": "Best Prices",
+    "bestPricesDesc": "We provide the most competitive prices in the Iraqi market daily."
+  },
+  "Checkout": {
+    "back": "Back to Cart",
+    "digital": "Digital",
+    "steps": {
+      "email": "Contact",
+      "payment": "Payment",
+      "details": "Transfer",
+      "receipt": "Receipt"
+    },
+    "delivery": "Digital Delivery",
+    "deliveryDesc": "Enter your email to receive the game key directly after verification.",
+    "chooseMethod": "Choose Method",
+    "chooseMethodDesc": "Select the local payment method that suits you in Iraq.",
+    "transferTo": "Transfer To",
+    "accountNumber": "Account Number",
+    "amount": "Amount",
+    "paid": "I Have Paid",
+    "uploadProof": "Upload Proof",
+    "uploadDesc": "Our team will verify the transaction and send the key to {email} within 5-10 minutes.",
+    "selectFile": "Select Receipt Image",
+    "secure": "GTX Quantum Encrypted",
+    "submitOrder": "SUBMIT ORDER NOW"
+  },
+  "Hero": {
+    "elden": {
+      "title": "Elden Ring: Shadow of the Erdtree",
+      "subtitle": "New expansion available now. Pre-order and get exclusive bonuses."
+    },
+    "cyber": {
+      "title": "Cyberpunk 2077: Ultimate Edition",
+      "subtitle": "Experience the ultimate RPG with the Phantom Liberty expansion."
+    },
+    "god": {
+      "title": "God of War: Ragnarök",
+      "subtitle": "The Norse saga continues. Journey through epic realms with Kratos."
+    },
+    "fc": {
+      "title": "FC 25 Ultimate Edition",
+      "subtitle": "Build your dream squad and compete on the world's biggest stage."
+    }
+  },
+  "Footer": {
+    "about": "GTX GAMING is your trusted platform for digital games in Iraq, providing the best deals and services with local payment methods.",
+    "shop": "Shop",
+    "help": "Help",
+    "legal": "Legal",
+    "games": "Video Games",
+    "cards": "Gift Cards",
+    "software": "Software",
+    "contact": "Contact Us",
+    "faq": "FAQ",
+    "guarantee": "GTX Guarantee",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "rights": "All Rights Reserved.",
+    "payments": "Local Payment Methods",
+    "latest": "Latest Releases",
+    "top": "Top Sellers",
+    "sale": "On Sale"
+  },
+  "Metadata": {
+    "title": "GTX GAMING | Premium Digital Games Store",
+    "description": "Your professional source for digital games, gift cards, and more in Iraq."
+  },
+  "Data": {
+    "games": {
+      "elden": "Elden Ring: Shadow of the Erdtree",
+      "cyber": "Cyberpunk 2077: Ultimate Edition",
+      "fc": "FC 25 Ultimate Edition",
+      "god": "God of War: Ragnarök",
+      "wukong": "Black Myth: Wukong",
+      "ps10": "PlayStation Card 10$",
+      "xbox20": "Xbox Card 20$",
+      "steam50": "Steam Card 50$"
+    },
+    "categories": {
+      "games": "Video Games",
+      "cards": "Gift Cards",
+      "software": "Software",
+      "dlc": "DLCs",
+      "steam": "Steam",
+      "psn": "PlayStation (PSN)",
+      "xbox": "Xbox",
+      "pc": "Computer (PC)",
+      "sport": "Sport",
+      "action": "Action"
+    },
+    "methods": {
+      "zain": "Zain Cash",
+      "qi": "Super Qi",
+      "fib": "First Bank (FIB)",
+      "fastpay": "FastPay"
+    }
+  },
+  "UI": {
+    "pageLoading": "Loading…",
+    "loadingImages": "Loading images…",
+    "noResults": "No results found for",
+    "scanToPay": "SCAN TO PAY",
+    "emailPlaceholder": "you@example.com",
+    "continueToPayment": "CONTINUE TO PAYMENT",
+    "back": "BACK",
+    "proceedToPay": "PROCEED TO PAY",
+    "orderSubmitted": "Order Submitted Successfully!"
+  },
+  "Search": {
+    "resultsFor": "Search Results for",
+    "allProducts": "Full Products Catalog",
+    "filters": "Filters",
+    "productType": "Product Type",
+    "priceRange": "Price Range",
+    "clearAll": "Clear All",
+    "resultsFound": "{count} results found",
+    "sortBy": "Sort by",
+    "relevance": "Relevance",
+    "priceLowHigh": "Price: Low to High",
+    "priceHighLow": "Price: High to Low",
+    "outOfStock": "Out of Stock",
+    "noResults": "We couldn't find any results matching your search.",
+    "regionLabel": "Region",
+    "platformLabel": "Platform",
+    "minPrice": "Min",
+    "maxPrice": "Max",
+    "global": "Global",
+    "applyFilters": "Apply filters",
+    "closeFilters": "Close",
+    "all": "All"
+  }
+}
