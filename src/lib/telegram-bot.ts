@@ -27,7 +27,14 @@ import {
   normalizeCouponCode,
   setCouponActive,
 } from '@/lib/coupons';
-import { getHeroProductIds, setHeroProductIds } from '@/lib/hero-products';
+import {
+  DEFAULT_HERO_CACHE_TTL_SECONDS,
+  getHeroCacheTtlSeconds,
+  getHeroProductIds,
+  normalizeHeroCacheTtlSeconds,
+  setHeroCacheTtlSeconds,
+  setHeroProductIds,
+} from '@/lib/hero-products';
 
 type TelegramApiResponse<T> = {
   ok: boolean;
@@ -331,6 +338,32 @@ async function answerCallbackQuery(callbackQueryId: string, text: string) {
   });
 }
 
+/** Parse /hero_ttl argument: 3600, 2h, 45m, 90s */
+function parseHeroTtlToSeconds(raw: string): number | null {
+  const t = raw.trim().toLowerCase();
+  if (!t) return null;
+  const h = /^(\d+)\s*h$/.exec(t);
+  if (h) return Number(h[1]) * 3600;
+  const m = /^(\d+)\s*m$/.exec(t);
+  if (m) return Number(m[1]) * 60;
+  const s = /^(\d+)\s*s$/.exec(t);
+  if (s) return Number(s[1]);
+  if (/^\d+$/.test(t)) return Number(t);
+  return null;
+}
+
+function formatHeroTtlHuman(seconds: number): string {
+  if (seconds >= 3600 && seconds % 3600 === 0) {
+    const h = seconds / 3600;
+    return `${h}h`;
+  }
+  if (seconds >= 60 && seconds % 60 === 0) {
+    const m = seconds / 60;
+    return `${m}m`;
+  }
+  return `${seconds}s`;
+}
+
 function normalizeFieldValue(field: PaymentEditField, raw: string): string {
   const v = raw.trim();
   if (field === 'barcodeUrl' || field === 'icon') {
@@ -392,7 +425,8 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
           '/gencoupon PERCENT [maxUses] [days] — create discount code',
           '/coupons — list coupons',
           '/coupon_off CODE — disable a coupon',
-          '/hero — show hero product IDs; set: /hero 123 456; clear: /hero clear',
+          '/hero — hero carousel Kinguin IDs; set: /hero 123 456; clear: /hero clear',
+          `/hero_ttl — cache window (default ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h); set: /hero_ttl 6h or /hero_ttl 3600`,
         ].join('\n'),
       );
       return;
@@ -545,16 +579,53 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       return;
     }
 
+    if (cmdToken === '/hero_ttl' || text.startsWith('/hero_ttl ')) {
+      await clearPendingPaymentEdit(userId);
+      const parts = text.trim().split(/\s+/);
+      if (parts.length === 1) {
+        const sec = await getHeroCacheTtlSeconds();
+        await sendText(
+          chatId,
+          [
+            '⏱ Hero carousel cache window (how long the same API response is reused):',
+            `Current: ${formatHeroTtlHuman(sec)} (${sec}s)`,
+            `Default: ${formatHeroTtlHuman(DEFAULT_HERO_CACHE_TTL_SECONDS)} (${DEFAULT_HERO_CACHE_TTL_SECONDS}s)`,
+            '',
+            'Set (60s–7d):',
+            '/hero_ttl 3600   — seconds',
+            '/hero_ttl 6h     — hours',
+            '/hero_ttl 45m    — minutes',
+          ].join('\n'),
+        );
+        return;
+      }
+      const raw = parts.slice(1).join(' ').trim();
+      const parsed = parseHeroTtlToSeconds(raw);
+      if (parsed == null) {
+        await sendText(chatId, 'Invalid duration. Examples: /hero_ttl 7200  /hero_ttl 2h  /hero_ttl 30m');
+        return;
+      }
+      const normalized = normalizeHeroCacheTtlSeconds(parsed);
+      const saved = await setHeroCacheTtlSeconds(normalized);
+      await sendText(
+        chatId,
+        `Hero cache window set to ${formatHeroTtlHuman(saved)} (${saved}s). Carousel refreshes on this interval (and when you change /hero IDs).`,
+      );
+      return;
+    }
+
     if (cmdToken === '/hero' || text.startsWith('/hero ')) {
       await clearPendingPaymentEdit(userId);
       const parts = text.trim().split(/\s+/);
       if (parts.length === 1) {
         const ids = await getHeroProductIds();
+        const ttlSec = await getHeroCacheTtlSeconds();
         await sendText(
           chatId,
           [
             '🖼 Home hero — Kinguin product IDs:',
             ids.length ? ids.join(' → ') : '(none — carousel uses default catalog)',
+            `⏱ Cache window: ${formatHeroTtlHuman(ttlSec)} (${ttlSec}s) — /hero_ttl to change`,
             '',
             `Set up to 6 IDs: /hero 12345 67890`,
             'Use default catalog again: /hero clear',
@@ -641,7 +712,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     await sendText(
       chatId,
-      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero',
+      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero, /hero_ttl',
     );
     return;
   }

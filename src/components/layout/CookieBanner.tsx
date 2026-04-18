@@ -62,7 +62,7 @@ export default function CookieBanner() {
             <p className="text-xs leading-relaxed text-muted md:text-sm">{t("description")}</p>
             <p className="text-[11px] leading-relaxed text-faint">
               <Link
-                href="#"
+                href="/privacy"
                 className="text-brand-orange underline-offset-2 hover:underline"
               >
                 {t("privacyLink")}

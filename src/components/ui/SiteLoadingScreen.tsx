@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Gamepad2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type Phase = "default" | "images";
@@ -23,9 +22,14 @@ export default function SiteLoadingScreen({ phase = "default", className = "" }:
       aria-live="polite"
       role="status"
     >
-      <div className="rounded-2xl bg-gradient-to-br from-brand-orange to-brand-purple p-3 shadow-lg shadow-brand-orange/20 ring-1 ring-white/10">
-        <Gamepad2 className="h-10 w-10 text-white md:h-12 md:w-12" aria-hidden />
-      </div>
+      <img
+        src="/icons/logo.png"
+        alt=""
+        width={96}
+        height={96}
+        className="h-20 w-20 object-contain md:h-24 md:w-24"
+        aria-hidden
+      />
       <div className="flex flex-col items-center gap-4">
         <div
           className="h-10 w-10 rounded-full border-2 border-white/15 border-t-brand-orange animate-spin md:h-11 md:w-11"
