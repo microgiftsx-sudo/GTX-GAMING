@@ -55,7 +55,7 @@ export default function HeroCarousel() {
   useEffect(() => {
     const ac = new AbortController();
     setLoading(true);
-    fetch(`/api/products?limit=${HERO_LIMIT}&sort=relevance&page=1`, {
+    fetch(`/api/products/hero`, {
       signal: ac.signal,
     })
       .then((r) => r.json())

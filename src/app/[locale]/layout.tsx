@@ -5,6 +5,8 @@ import MegaHeader from "@/components/layout/MegaHeader";
 import NavBar from "@/components/layout/NavBar";
 import Footer from "@/components/layout/Footer";
 import { CartProvider } from "@/context/CartContext";
+import { CookieConsentProvider } from "@/context/CookieConsentContext";
+import CookieBannerHost from "@/components/layout/CookieBannerHost";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -62,14 +64,17 @@ export default async function LocaleLayout({
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <body className={`${tajawal.variable} ${outfit.variable} antialiased text-foreground selection:bg-brand-orange selection:text-white`}>
         <NextIntlClientProvider messages={messages}>
-          <CartProvider>
-            <div className="flex flex-col min-h-screen min-h-[100dvh] pb-[env(safe-area-inset-bottom)]">
-              <MegaHeader />
-              <NavBar />
-              <main className="flex-grow">{children}</main>
-              <Footer />
-            </div>
-          </CartProvider>
+          <CookieConsentProvider>
+            <CartProvider>
+              <div className="flex flex-col min-h-screen min-h-[100dvh] pb-[env(safe-area-inset-bottom)]">
+                <MegaHeader />
+                <NavBar />
+                <main className="flex-grow">{children}</main>
+                <Footer />
+              </div>
+            </CartProvider>
+            <CookieBannerHost />
+          </CookieConsentProvider>
         </NextIntlClientProvider>
       </body>
     </html>
