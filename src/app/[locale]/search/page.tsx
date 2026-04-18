@@ -284,7 +284,7 @@ export default function SearchPage() {
                   <div className="mb-2 shrink-0 overflow-hidden rounded-xl border border-edge bg-surface-elevated shadow-lg shadow-black/30 ring-1 ring-white/[0.04] md:mb-3 md:rounded-2xl">
                     <Link
                       href={`/product/${product.id}`}
-                      className="relative block aspect-[3/4] w-full touch-manipulation overflow-hidden"
+                      className="relative block aspect-[160/150] w-full touch-manipulation overflow-hidden"
                     >
                       <CatalogCardImage
                         src={product.image}

@@ -12,16 +12,21 @@ import CatalogCardImage from "@/components/ui/CatalogCardImage";
 
 const HERO_LIMIT = 6;
 
+/** Strip HTML and truncate at a word boundary so we never end mid-word (e.g. “…which”). */
 function excerptDescription(raw: string | null, max = 200): string {
   if (!raw?.trim()) return "";
   const plain = raw.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   if (plain.length <= max) return plain;
-  return `${plain.slice(0, max).trimEnd()}…`;
+  const slice = plain.slice(0, max);
+  const lastSpace = slice.lastIndexOf(" ");
+  const cut =
+    lastSpace > Math.floor(max * 0.55) ? slice.slice(0, lastSpace) : slice.trimEnd();
+  return `${cut}…`;
 }
 
 /** Desktop hero blurb; hidden on mobile to save vertical space */
 function heroSubtitle(p: StoreProduct, fallback: string) {
-  const ex = excerptDescription(p.description, 72);
+  const ex = excerptDescription(p.description, 140);
   if (ex) return ex;
   return fallback;
 }
@@ -148,7 +153,7 @@ export default function HeroCarousel() {
 
   return (
     <div className="relative w-full max-w-7xl mx-auto px-2 sm:px-4 mt-2 md:mt-8 group">
-      <div className="relative h-[min(36vh,280px)] min-h-[220px] md:h-[min(520px,58vh)] md:min-h-[480px] w-full bg-surface-elevated rounded-xl md:rounded-[40px] overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.45)] border border-edge ring-1 ring-white/[0.04]">
+      <div className="relative h-[min(44vh,340px)] min-h-[248px] md:h-[min(520px,58vh)] md:min-h-[480px] w-full bg-surface-elevated rounded-xl md:rounded-[40px] overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.45)] border border-edge ring-1 ring-white/[0.04]">
         {showSkeleton ? (
           <div
             className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-surface-elevated to-surface-elevated animate-pulse"
@@ -189,66 +194,69 @@ export default function HeroCarousel() {
                 sizes="(max-width: 768px) 100vw, min(1280px, 100vw)"
                 className="absolute inset-0 z-[1] size-full object-cover object-center"
               />
-              {/* Strong scrim: text + glass panel sit on solid dark, not on cover art */}
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-dark from-25% via-brand-dark/85 via-45% to-transparent to-70% md:from-brand-dark/95 md:via-brand-dark/25 md:via-40% md:to-transparent md:to-65%" />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-brand-dark/90 via-brand-dark/50 to-transparent to-55% md:via-brand-dark/35 md:to-58% rtl:bg-gradient-to-l" />
+              {/* Mobile: keep cover visible — light top vignette only; desktop: subtle top fade */}
+              <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/25 via-transparent to-transparent to-[30%] md:from-brand-dark/35 md:via-transparent md:to-[50%]" />
             </div>
 
-            {/* Mobile: compact — no kicker/description; tight padding. md+: full hero copy */}
-            <div className="absolute inset-x-0 bottom-0 top-0 z-20 flex flex-col justify-end text-start px-2 pb-2 pt-10 md:top-14 md:px-0 md:pb-6 md:ps-[4.5rem] md:pe-[4.5rem] md:pt-0">
-              <div className="w-full max-w-xl pb-0 md:max-w-[min(34rem,46vw)] md:pb-10">
-                <div className="rounded-xl border border-white/12 bg-brand-dark/85 px-3 py-3 shadow-[0_8px_28px_rgba(0,0,0,0.5)] backdrop-blur-md md:rounded-3xl md:border-white/10 md:bg-brand-dark/70 md:px-8 md:py-8 md:shadow-xl md:shadow-black/40">
+            {/* Bottom overlay: mobile = narrow strip (~40% height max) + no heavy card; md+ = full card */}
+            <div className="absolute inset-x-0 bottom-0 z-20 flex max-h-[48%] flex-col justify-end text-start md:max-h-none">
+              <div className="w-full bg-gradient-to-t from-brand-dark from-0% via-brand-dark/88 to-transparent to-100% px-3 pb-2 pt-8 md:from-[8%] md:via-brand-dark/[0.97] md:via-[55%] md:to-transparent md:to-[100%] md:px-10 md:pb-8 md:pt-16 lg:px-12 lg:pb-10 lg:pt-20">
+                {/* Mobile: flat on gradient — no large glass box hiding the art */}
+                <div className="mx-auto max-w-5xl max-md:space-y-2 md:rounded-[1.75rem] md:border md:border-white/[0.07] md:bg-black/45 md:p-7 md:shadow-[0_16px_48px_rgba(0,0,0,0.55)] md:backdrop-blur-md lg:p-8">
                   <motion.div
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                    className="mb-2 hidden min-h-0 items-center gap-2 md:mb-5 md:flex md:gap-3"
+                    transition={{ delay: 0.1 }}
+                    className="mb-1 flex min-h-0 items-center gap-1.5 md:mb-4 md:gap-3"
                   >
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-brand-orange/35 bg-brand-orange/15 md:h-8 md:w-8 md:rounded-xl">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-brand-orange/40 bg-brand-orange/18 md:h-8 md:w-8 md:rounded-xl">
                       <Zap className="h-3 w-3 fill-brand-orange text-brand-orange md:h-4 md:w-4" />
                     </div>
-                    <span className="section-kicker !text-white/60">{t("trending")}</span>
+                    <span className="section-kicker !text-[10px] !text-white/75 md:!text-xs md:!text-white/70">{t("trending")}</span>
                   </motion.div>
 
                   <motion.h1
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="mb-0 line-clamp-2 text-sm font-bold leading-tight tracking-tight text-white sm:line-clamp-3 sm:text-lg sm:leading-snug md:mb-4 md:line-clamp-4 md:text-4xl md:leading-tight lg:text-[2.65rem] lg:leading-[1.15]"
+                    transition={{ delay: 0.15 }}
+                    className="line-clamp-2 text-sm font-bold leading-snug tracking-tight text-white sm:text-base md:mb-3 md:line-clamp-3 md:text-3xl md:leading-tight lg:line-clamp-3 lg:text-[2.35rem] lg:leading-[1.2]"
                   >
                     {current!.title}
                   </motion.h1>
 
                   <motion.p
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
-                    className="mb-0 mt-2 hidden line-clamp-3 text-sm leading-relaxed text-white/80 md:mb-8 md:mt-0 md:block md:text-base"
+                    transition={{ delay: 0.2 }}
+                    className="mt-2 hidden line-clamp-3 text-sm leading-relaxed text-white/80 md:mb-6 md:block md:min-h-[4.5rem] md:text-base md:leading-relaxed"
                   >
                     {subtitleFor(current!)}
                   </motion.p>
 
                   <motion.div
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="mt-2.5 flex flex-row flex-wrap items-center gap-2 md:mt-0 md:flex-row md:items-center md:gap-6"
+                    transition={{ delay: 0.25 }}
+                    className="mt-2 flex flex-row flex-wrap items-stretch gap-2 md:mt-6 md:items-center md:justify-between md:gap-6"
                   >
                     <Link
                       href={`/product/${current!.id}`}
-                      className="inline-flex min-w-0 max-md:flex-1 max-md:min-w-[60%] sm:max-w-sm md:w-auto md:max-w-sm md:flex-initial"
+                      className="inline-flex min-h-0 min-w-0 flex-1 md:w-auto md:max-w-md md:flex-initial"
                     >
-                      <span className="inline-flex min-h-10 w-full touch-manipulation items-center justify-center gap-2 rounded-lg bg-brand-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white shadow-lg shadow-brand-orange/25 outline-none transition-all hover:bg-brand-orange/90 active:scale-[0.99] sm:min-h-12 sm:rounded-xl sm:px-6 sm:py-3.5 sm:text-sm md:px-10 md:py-4 md:text-base">
+                      <span className="inline-flex min-h-10 w-full touch-manipulation items-center justify-center gap-2 rounded-lg bg-brand-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white shadow-lg shadow-brand-orange/30 outline-none transition-all hover:bg-brand-orange/92 active:scale-[0.99] md:min-h-12 md:rounded-xl md:px-8 md:text-sm lg:px-10 lg:py-3.5 lg:text-base">
                         <span className="min-w-0 truncate">{t("buyNow")}</span>
-                        <span className="shrink-0 opacity-30">|</span>
+                        <span className="shrink-0 text-white/50">|</span>
                         <span className="shrink-0 tabular-nums" dir="ltr" translate="no">
                           {formatPrice(current!.price, locale)}
                         </span>
                       </span>
                     </Link>
-                    <div className="flex shrink-0 items-center gap-1.5 md:gap-2 md:ps-0">
-                      <div className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-green-500 md:h-2 md:w-2" />
-                      <span className="text-[9px] font-medium uppercase tracking-wider text-white/75 md:text-[11px]">
+                    <div className="hidden min-h-10 min-w-0 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-black/25 px-2 py-1.5 md:flex md:min-h-0 md:rounded-xl md:border-white/10 md:bg-white/[0.04] md:px-4 md:py-2.5">
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)] md:h-2 md:w-2"
+                        aria-hidden
+                      />
+                      <span className="text-[9px] font-semibold uppercase leading-tight tracking-wider text-white/90 md:text-xs">
                         {t("delivery")}
                       </span>
                     </div>
@@ -332,7 +340,7 @@ export default function HeroCarousel() {
                     : "border-white/15 hover:border-white/35",
                 ].join(" ")}
               >
-                <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-md sm:rounded-[10px] md:rounded-[14px] lg:rounded-[22px]">
+                <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
                   <CatalogCardImage
                     src={product.image}
                     alt=""

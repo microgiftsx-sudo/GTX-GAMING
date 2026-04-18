@@ -74,7 +74,7 @@ export default function CartPage() {
                 className="card-surface rounded-3xl p-6 flex items-center gap-6 group hover:border-brand-orange/15 transition-colors text-start"
               >
                 <div 
-                  className="w-24 aspect-[2/3] rounded-xl bg-cover bg-center shrink-0 border border-edge"
+                  className="w-24 aspect-[160/150] rounded-xl bg-cover bg-center shrink-0 border border-edge"
                   style={{ backgroundImage: `url("${storefrontImageSrc(item.image)}")` }}
                 />
                 <div className="flex-1 min-w-0">

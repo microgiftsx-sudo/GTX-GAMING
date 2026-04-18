@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Camera, Gamepad2, Send } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { useCookieConsent } from '@/context/CookieConsentContext';
+import { SITE } from '@/lib/site';
 
 export default function Footer() {
   const t = useTranslations('Footer');
@@ -12,9 +13,9 @@ export default function Footer() {
   const d = useTranslations('Data');
 
   const socialLinks = [
-    { icon: <Camera size={20} />, href: "#", label: "Instagram" },
-    { icon: <Gamepad2 size={20} />, href: "#", label: "Discord" },
-    { icon: <Send size={20} />, href: "#", label: "Telegram" },
+    { icon: <Camera size={20} />, href: SITE.social.instagram, label: 'Instagram' },
+    { icon: <Gamepad2 size={20} />, href: SITE.social.discord, label: 'Discord' },
+    { icon: <Send size={20} />, href: SITE.social.telegram, label: 'Telegram' },
   ];
 
   const paymentMethods = [
@@ -67,9 +68,9 @@ export default function Footer() {
                 {t('shop')}
               </h4>
               <ul className="space-y-0">
-                <li><Link href="#" className={linkClass}>{t('games')}</Link></li>
-                <li><Link href="#" className={linkClass}>{t('cards')}</Link></li>
-                <li><Link href="#" className={linkClass}>{t('software')}</Link></li>
+                <li><Link href="/search?category=games" className={linkClass}>{t('games')}</Link></li>
+                <li><Link href="/search?category=cards" className={linkClass}>{t('cards')}</Link></li>
+                <li><Link href="/search?category=software" className={linkClass}>{t('software')}</Link></li>
               </ul>
             </div>
 
@@ -78,9 +79,9 @@ export default function Footer() {
                 {t('help')}
               </h4>
               <ul className="space-y-0">
-                <li><Link href="#" className={linkClass}>{t('contact')}</Link></li>
-                <li><Link href="#" className={linkClass}>{t('faq')}</Link></li>
-                <li><Link href="#" className={linkClass}>{t('guarantee')}</Link></li>
+                <li><Link href="/contact" className={linkClass}>{t('contact')}</Link></li>
+                <li><Link href="/faq" className={linkClass}>{t('faq')}</Link></li>
+                <li><Link href="/guarantee" className={linkClass}>{t('guarantee')}</Link></li>
               </ul>
             </div>
           </div>
@@ -120,10 +121,10 @@ export default function Footer() {
             © {new Date().getFullYear()} GTX GAMING. {t('rights')}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-             <Link href="#" className="text-muted hover:text-foreground transition-colors text-xs font-medium min-h-11 inline-flex items-center touch-manipulation">
+             <Link href="/privacy" className="text-muted hover:text-foreground transition-colors text-xs font-medium min-h-11 inline-flex items-center touch-manipulation">
                {t('privacy')}
              </Link>
-             <Link href="#" className="text-muted hover:text-foreground transition-colors text-xs font-medium min-h-11 inline-flex items-center touch-manipulation">
+             <Link href="/terms" className="text-muted hover:text-foreground transition-colors text-xs font-medium min-h-11 inline-flex items-center touch-manipulation">
                {t('terms')}
              </Link>
              <button

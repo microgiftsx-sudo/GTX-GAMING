@@ -12,6 +12,8 @@ import { discountBadgeVisible } from '@/lib/store-product';
 import ProductGallery from '@/components/product/ProductGallery';
 import DiscountBadge from '@/components/ui/DiscountBadge';
 import SiteLoadingScreen from '@/components/ui/SiteLoadingScreen';
+import LazyWhenVisible from '@/components/ui/LazyWhenVisible';
+import ProductRelatedSection from '@/components/product/ProductRelatedSection';
 
 export default function ProductPage() {
   const t = useTranslations('Product');
@@ -228,6 +230,14 @@ export default function ProductPage() {
           </div>
         </div>
       </div>
+
+      <LazyWhenVisible
+        minHeight="min-h-[280px] md:min-h-[240px]"
+        rootMargin="120px 0px"
+        className="max-w-7xl mx-auto px-4"
+      >
+        <ProductRelatedSection current={product} />
+      </LazyWhenVisible>
     </div>
   );
 }
