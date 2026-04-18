@@ -7,6 +7,8 @@ export type PaymentMethod = {
   icon: string;
   account: string;
   enabled: boolean;
+  /** HTTPS URL to QR/barcode image on checkout (optional) */
+  barcodeUrl?: string;
 };
 
 export type OrderStatus =
@@ -124,15 +126,41 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
   return next;
 }
 
+function mergeMethodWithDefaults(method: PaymentMethod): PaymentMethod {
+  const d = DEFAULT_PAYMENT_METHODS.find((m) => m.id === method.id);
+  if (!d) return method;
+  return {
+    ...d,
+    ...method,
+    name: method.name ?? d.name,
+    icon: method.icon ?? d.icon,
+    account: method.account ?? d.account,
+    enabled: typeof method.enabled === 'boolean' ? method.enabled : d.enabled,
+  };
+}
+
 export async function listPaymentMethods(): Promise<PaymentMethod[]> {
   const methods = await readJsonOrDefault<PaymentMethod[]>(METHODS_FILE, DEFAULT_PAYMENT_METHODS);
   if (!Array.isArray(methods) || methods.length === 0) {
-    return DEFAULT_PAYMENT_METHODS;
+    return DEFAULT_PAYMENT_METHODS.map((m) => ({ ...m }));
   }
-  return methods;
+  return methods.map(mergeMethodWithDefaults);
 }
 
 export async function savePaymentMethods(methods: PaymentMethod[]) {
   await writeJson(METHODS_FILE, methods);
+}
+
+export async function updatePaymentMethod(
+  methodId: string,
+  patch: Partial<Pick<PaymentMethod, 'name' | 'icon' | 'account' | 'barcodeUrl' | 'enabled'>>,
+): Promise<PaymentMethod | null> {
+  const methods = await listPaymentMethods();
+  const idx = methods.findIndex((m) => m.id === methodId);
+  if (idx === -1) return null;
+  const next = { ...methods[idx], ...patch };
+  methods[idx] = mergeMethodWithDefaults(next);
+  await savePaymentMethods(methods);
+  return methods[idx];
 }
 

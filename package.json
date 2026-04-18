@@ -6,8 +6,7 @@
     "dev": "node scripts/next-dev.cjs",
     "build": "node scripts/next-build.cjs",
     "start": "node scripts/next-start.cjs",
-    "lint": "eslint",
-    "telegram:links": "node scripts/telegram-links.cjs"
+    "lint": "eslint"
   },
   "dependencies": {
     "@swc/helpers": "^0.5.21",
