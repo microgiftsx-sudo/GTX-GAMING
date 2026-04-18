@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { ChevronRight } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { useCart } from "@/context/CartContext";
 import { useTranslations, useLocale } from "next-intl";
@@ -33,6 +34,11 @@ export default function ProductRelatedSection({ current }: { current: StoreProdu
   const locale = useLocale();
   const { addItem, formatPrice } = useCart();
   const [items, setItems] = useState<StoreProduct[]>([]);
+
+  const moreSearchHref = `/search?${new URLSearchParams({
+    platform: current.platform,
+    category: current.category,
+  }).toString()}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -68,12 +74,21 @@ export default function ProductRelatedSection({ current }: { current: StoreProdu
 
   return (
     <section className="mt-12 md:mt-16 content-below-fold" aria-labelledby="product-related-heading">
-      <h2
-        id="product-related-heading"
-        className="text-lg md:text-2xl font-bold tracking-tight text-foreground mb-5 md:mb-8"
-      >
-        {t("youMayAlsoLike")}
-      </h2>
+      <div className="flex items-center justify-between gap-3 mb-5 md:mb-8">
+        <h2
+          id="product-related-heading"
+          className="text-lg md:text-2xl font-bold tracking-tight text-foreground min-w-0 truncate"
+        >
+          {t("youMayAlsoLike")}
+        </h2>
+        <Link
+          href={moreSearchHref}
+          className="shrink-0 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-muted hover:text-brand-orange transition-colors flex items-center gap-1.5 outline-none min-h-11 px-1 -me-1 touch-manipulation"
+        >
+          {t("viewMore")}
+          <ChevronRight size={14} className="transition-transform rtl:rotate-180 md:size-[16px]" />
+        </Link>
+      </div>
 
       <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-6 md:grid-cols-4 md:gap-8">
         {items.map((product, index) => (
