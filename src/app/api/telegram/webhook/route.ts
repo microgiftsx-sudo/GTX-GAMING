@@ -6,13 +6,6 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const secret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
-    if (secret) {
-      const header = req.headers.get('x-telegram-bot-api-secret-token')?.trim();
-      if (header !== secret) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    }
     const update = await req.json();
     await handleTelegramUpdate(update);
     return NextResponse.json({ ok: true });
