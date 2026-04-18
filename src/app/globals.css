@@ -128,3 +128,9 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Defer layout/paint work for sections that are off-screen (pairs well with lazy-mounted blocks). */
+.content-below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}

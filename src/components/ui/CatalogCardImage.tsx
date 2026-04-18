@@ -9,6 +9,8 @@ type Props = {
   className?: string;
   loading?: "lazy" | "eager";
   fetchPriority?: "high" | "low" | "auto";
+  /** Helps the browser pick a reasonable resolution for responsive grids */
+  sizes?: string;
 };
 
 /** بطاقة المنتج — الصور الخارجية تُحمَّل عبر بروكسي الموقع لتجاوز حظر الـ CDN. */
@@ -18,6 +20,7 @@ export default function CatalogCardImage({
   className = "",
   loading = "lazy",
   fetchPriority,
+  sizes,
 }: Props) {
   const resolved = storefrontImageSrc(src);
   return (
@@ -27,6 +30,7 @@ export default function CatalogCardImage({
         alt={alt}
         loading={loading}
         decoding="async"
+        sizes={sizes}
         className="absolute inset-0 z-[1] h-full w-full object-cover object-center"
         {...(fetchPriority ? { fetchPriority } : {})}
       />

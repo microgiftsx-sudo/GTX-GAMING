@@ -13,6 +13,9 @@ import { Link, useRouter } from '@/i18n/routing';
 import { ChevronDown, Filter, LayoutGrid, Search as SearchIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+/** Search grid: 2 cols default, 3 from xl */
+const SEARCH_CARD_SIZES = '(max-width: 1279px) 50vw, 33vw';
+
 export default function SearchPage() {
   const t = useTranslations('Search');
   const d = useTranslations('Data');
@@ -269,8 +272,8 @@ export default function SearchPage() {
           {loading ? (
             <div className="py-24 text-center text-muted text-sm animate-pulse">…</div>
           ) : items.length > 0 ? (
-            <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-6 xl:grid-cols-3 md:gap-8">
-              {items.map((product) => (
+            <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-6 xl:grid-cols-3 md:gap-8 content-below-fold">
+              {items.map((product, index) => (
                 <motion.div 
                   layout
                   initial={{ opacity: 0, scale: 0.98 }}
@@ -286,6 +289,8 @@ export default function SearchPage() {
                       <CatalogCardImage
                         src={product.image}
                         alt={product.title}
+                        sizes={SEARCH_CARD_SIZES}
+                        fetchPriority={index < 4 ? 'auto' : 'low'}
                         className="absolute inset-0 size-full transition-transform duration-500 md:group-hover:scale-105"
                       />
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-transparent to-transparent opacity-70 transition-opacity md:opacity-0 md:group-hover:opacity-100" />
