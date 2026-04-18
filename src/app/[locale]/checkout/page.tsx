@@ -182,12 +182,21 @@ export default function CheckoutPage() {
                   <h2 className="text-2xl font-black tracking-tighter italic uppercase mb-2">{t('chooseMethod')}</h2>
                   <p className="text-sm text-white/40">{t('chooseMethodDesc')}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div
+                  className={
+                    methods.length === 1
+                      ? 'flex flex-col items-stretch max-w-xs mx-auto gap-3'
+                      : 'flex flex-wrap justify-center gap-3'
+                  }
+                >
                   {methods.map((method) => (
                     <button 
                       key={method.id} 
                       onClick={() => setSelectedMethod(method)}
-                      className={`p-5 rounded-3xl border-2 flex items-start flex-col gap-3 transition-all outline-none ${
+                      type="button"
+                      className={`rounded-3xl border-2 flex flex-col items-center justify-center gap-3 text-center transition-all outline-none ${
+                        methods.length === 1 ? 'w-full p-5' : 'w-[calc(50%-0.375rem)] min-w-[140px] max-w-[calc(50%-0.375rem)] p-5'
+                      } ${
                         selectedMethod.id === method.id 
                         ? 'bg-white/5 border-brand-orange shadow-lg' 
                         : 'bg-transparent border-white/5 hover:border-white/10'
@@ -246,8 +255,21 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <div className="relative p-6 bg-white rounded-3xl max-w-[200px] mx-auto group cursor-pointer active:scale-95 transition-all shadow-2xl">
-                  <QrCode size={150} className="text-black" />
+                <div className="relative p-6 bg-white rounded-3xl max-w-[200px] mx-auto group cursor-pointer active:scale-95 transition-all shadow-2xl overflow-hidden">
+                  {(() => {
+                    const qrUrl = (selectedMethod as { barcodeUrl?: string }).barcodeUrl?.trim();
+                    return qrUrl ? (
+                    <img
+                      src={qrUrl}
+                      alt=""
+                      className="h-[150px] w-[150px] object-contain"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <QrCode size={150} className="text-black" />
+                  );
+                  })()}
                   <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-3xl">
                     <span className="bg-brand-dark text-white text-[10px] font-black px-3 py-1 rounded tracking-widest uppercase">{ui('scanToPay')}</span>
                   </div>
