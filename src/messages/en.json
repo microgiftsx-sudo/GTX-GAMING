@@ -48,9 +48,13 @@
     "summary": "Order Summary",
     "backToStore": "Back to Store",
     "digitalDetail": "Digital License • Online Activation",
-    "discountLabel": "Discount (10%)",
+    "discountLabel": "Discount ({percent}%)",
     "encrypted": "Encrypted Processing",
-    "discountPlaceholder": "SAVE10"
+    "discountPlaceholder": "GTX-XXXXXXXX",
+    "couponInvalid": "Invalid or expired code.",
+    "couponApplied": "Coupon applied.",
+    "removeCoupon": "Remove",
+    "taxLine": "Tax ({rate}%)"
   },
   "Product": {
     "buyNow": "Buy Now",

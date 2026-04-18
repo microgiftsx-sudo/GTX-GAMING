@@ -31,6 +31,13 @@ function discountLabel(priceEur: number, originalEur: number | null | undefined)
   return pct > 0 ? `-${pct}%` : '—';
 }
 
+/** Show purple discount badge only when Kinguin reports a real markdown (not placeholder "—"). */
+export function discountBadgeVisible(discount: string): boolean {
+  const s = discount.trim();
+  if (!s || s === '—' || s === '-') return false;
+  return /^-\d+%$/.test(s);
+}
+
 /** Map live Kinguin API JSON to storefront shape (same rules as DB row). */
 export function fromKinguinJson(p: KinguinProductJson): StoreProduct {
   const m = mapKinguinJson(p);

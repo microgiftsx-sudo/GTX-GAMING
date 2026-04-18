@@ -5,11 +5,16 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import type { StoreProduct } from '@/lib/store-product';
 import CatalogCardImage from '@/components/ui/CatalogCardImage';
+import DiscountBadge from '@/components/ui/DiscountBadge';
+import { discountBadgeVisible } from '@/lib/store-product';
 import { useCart } from '@/context/CartContext';
 import SearchSidebar from '@/components/search/SearchSidebar';
 import { Link, useRouter } from '@/i18n/routing';
 import { ChevronDown, Filter, LayoutGrid, Search as SearchIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+/** Search grid: 2 cols default, 3 from xl */
+const SEARCH_CARD_SIZES = '(max-width: 1279px) 50vw, 33vw';
 
 export default function SearchPage() {
   const t = useTranslations('Search');
@@ -267,8 +272,8 @@ export default function SearchPage() {
           {loading ? (
             <div className="py-24 text-center text-muted text-sm animate-pulse">…</div>
           ) : items.length > 0 ? (
-            <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-6 xl:grid-cols-3 md:gap-8">
-              {items.map((product) => (
+            <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-6 xl:grid-cols-3 md:gap-8 content-below-fold">
+              {items.map((product, index) => (
                 <motion.div 
                   layout
                   initial={{ opacity: 0, scale: 0.98 }}
@@ -284,17 +289,17 @@ export default function SearchPage() {
                       <CatalogCardImage
                         src={product.image}
                         alt={product.title}
+                        sizes={SEARCH_CARD_SIZES}
+                        fetchPriority={index < 4 ? 'auto' : 'low'}
                         className="absolute inset-0 size-full transition-transform duration-500 md:group-hover:scale-105"
                       />
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-transparent to-transparent opacity-70 transition-opacity md:opacity-0 md:group-hover:opacity-100" />
 
-                      <div
-                        className="absolute top-2 end-2 z-10 bg-brand-purple/90 px-1.5 py-0.5 text-[9px] font-semibold text-white ring-1 ring-white/10 md:top-3 md:end-3 md:rounded-lg md:px-2 md:py-1 md:text-[10px] rounded-md"
-                        lang="en"
-                        translate="no"
-                      >
-                        <span dir="ltr">{product.discount}</span>
-                      </div>
+                      {discountBadgeVisible(product.discount) && (
+                        <DiscountBadge variant="card">
+                          <span dir="ltr">{product.discount}</span>
+                        </DiscountBadge>
+                      )}
 
                       <div className="absolute inset-0 hidden items-center justify-center px-3 opacity-0 transition-all md:flex md:group-hover:opacity-100">
                         <button

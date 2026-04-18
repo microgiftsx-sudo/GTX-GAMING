@@ -7,6 +7,7 @@ import { useCart } from "@/context/CartContext";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import type { StoreProduct } from "@/lib/store-product";
+import { storefrontImageSrc } from "@/lib/storefront-image";
 import CatalogCardImage from "@/components/ui/CatalogCardImage";
 
 const HERO_LIMIT = 6;
@@ -18,9 +19,9 @@ function excerptDescription(raw: string | null, max = 200): string {
   return `${plain.slice(0, max).trimEnd()}…`;
 }
 
-/** Shorter copy in hero so the panel never fights the CTA */
+/** Desktop hero blurb; hidden on mobile to save vertical space */
 function heroSubtitle(p: StoreProduct, fallback: string) {
-  const ex = excerptDescription(p.description, 110);
+  const ex = excerptDescription(p.description, 72);
   if (ex) return ex;
   return fallback;
 }
@@ -96,10 +97,10 @@ export default function HeroCarousel() {
   );
 
   useEffect(() => {
-    if (n <= 1) return;
+    if (n <= 1 || loading) return;
     const timer = setInterval(() => paginate(1), 5000);
     return () => clearInterval(timer);
-  }, [n, paginate]);
+  }, [n, paginate, loading]);
 
   const slideVariants = {
     enter: (dir: number) => ({
@@ -122,22 +123,9 @@ export default function HeroCarousel() {
   const swipePower = (offset: number, velocity: number) =>
     Math.abs(offset) * velocity;
 
-  if (loading) {
+  if (!loading && n === 0) {
     return (
-      <div className="relative w-full max-w-7xl mx-auto px-3 sm:px-4 mt-3 md:mt-8">
-        <div
-          className="relative h-[min(42vh,320px)] min-h-[260px] md:h-[min(520px,58vh)] md:min-h-[480px] w-full rounded-2xl md:rounded-[40px] overflow-hidden border border-edge bg-surface-elevated animate-pulse"
-          aria-busy
-          aria-label={th("heroLoading")}
-        />
-        <p className="sr-only">{th("heroLoading")}</p>
-      </div>
-    );
-  }
-
-  if (n === 0) {
-    return (
-      <div className="relative w-full max-w-7xl mx-auto px-3 sm:px-4 mt-3 md:mt-8">
+      <div className="relative w-full max-w-7xl mx-auto px-2 sm:px-4 mt-2 md:mt-8">
         <div className="rounded-2xl md:rounded-[40px] border border-dashed border-edge bg-surface-elevated/80 px-6 py-12 md:py-16 text-center">
           <p className="text-muted text-sm md:text-base mb-6 max-w-md mx-auto">
             {th("heroEmpty")}
@@ -153,12 +141,22 @@ export default function HeroCarousel() {
     );
   }
 
+  const showSkeleton = loading && n === 0;
+
   const subtitleFor = (p: StoreProduct) =>
     heroSubtitle(p, th("heroNoDescription"));
 
   return (
-    <div className="relative w-full max-w-7xl mx-auto px-3 sm:px-4 mt-3 md:mt-8 group">
-      <div className="relative h-[min(42vh,320px)] min-h-[260px] md:h-[min(520px,58vh)] md:min-h-[480px] w-full bg-surface-elevated rounded-2xl md:rounded-[40px] overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.45)] border border-edge ring-1 ring-white/[0.04]">
+    <div className="relative w-full max-w-7xl mx-auto px-2 sm:px-4 mt-2 md:mt-8 group">
+      <div className="relative h-[min(36vh,280px)] min-h-[220px] md:h-[min(520px,58vh)] md:min-h-[480px] w-full bg-surface-elevated rounded-xl md:rounded-[40px] overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.45)] border border-edge ring-1 ring-white/[0.04]">
+        {showSkeleton ? (
+          <div
+            className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-surface-elevated to-surface-elevated animate-pulse"
+            aria-busy
+            aria-label={th("heroLoading")}
+          />
+        ) : (
+          <>
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={current!.id}
@@ -183,31 +181,31 @@ export default function HeroCarousel() {
           >
             <div className="absolute inset-0 overflow-hidden">
               <img
-                src={current!.image}
+                src={storefrontImageSrc(current!.image)}
                 alt=""
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
                 sizes="(max-width: 768px) 100vw, min(1280px, 100vw)"
-                className="absolute inset-0 size-full object-cover object-center"
+                className="absolute inset-0 z-[1] size-full object-cover object-center"
               />
-              {/* Mobile gets lighter overlay so artwork stays visible */}
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-brand-dark/15 to-transparent to-[60%] md:from-brand-dark/95 md:via-brand-dark/20 md:to-[65%]" />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-brand-dark/65 via-brand-dark/20 to-transparent from-[0%] to-[52%] md:from-brand-dark/90 md:via-brand-dark/35 md:to-[58%] rtl:bg-gradient-to-l" />
+              {/* Strong scrim: text + glass panel sit on solid dark, not on cover art */}
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-dark from-25% via-brand-dark/85 via-45% to-transparent to-70% md:from-brand-dark/95 md:via-brand-dark/25 md:via-40% md:to-transparent md:to-65%" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-brand-dark/90 via-brand-dark/50 to-transparent to-55% md:via-brand-dark/35 md:to-58% rtl:bg-gradient-to-l" />
             </div>
 
-            {/* Inset clears side nav buttons; content stacks naturally (no fixed card height) */}
-            <div className="absolute inset-x-0 bottom-0 top-10 z-20 flex flex-col justify-end text-start px-5 pb-5 md:top-14 md:px-0 md:pb-6 md:ps-[4.5rem] md:pe-[4.5rem]">
-              <div className="w-full max-w-xl pb-2 md:max-w-[min(34rem,46vw)] md:pb-10">
-                <div className="rounded-2xl border border-transparent bg-transparent px-0 py-0 shadow-none backdrop-blur-0 md:rounded-3xl md:border-white/10 md:bg-brand-dark/70 md:px-8 md:py-8 md:shadow-xl md:shadow-black/40 md:backdrop-blur-sm">
+            {/* Mobile: compact — no kicker/description; tight padding. md+: full hero copy */}
+            <div className="absolute inset-x-0 bottom-0 top-0 z-20 flex flex-col justify-end text-start px-2 pb-2 pt-10 md:top-14 md:px-0 md:pb-6 md:ps-[4.5rem] md:pe-[4.5rem] md:pt-0">
+              <div className="w-full max-w-xl pb-0 md:max-w-[min(34rem,46vw)] md:pb-10">
+                <div className="rounded-xl border border-white/12 bg-brand-dark/85 px-3 py-3 shadow-[0_8px_28px_rgba(0,0,0,0.5)] backdrop-blur-md md:rounded-3xl md:border-white/10 md:bg-brand-dark/70 md:px-8 md:py-8 md:shadow-xl md:shadow-black/40">
                   <motion.div
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 }}
-                    className="mb-4 flex items-center gap-2 md:mb-5 md:gap-3"
+                    className="mb-2 hidden min-h-0 items-center gap-2 md:mb-5 md:flex md:gap-3"
                   >
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-brand-orange/35 bg-brand-orange/15 md:h-8 md:w-8 md:rounded-xl">
-                      <Zap className="h-3.5 w-3.5 fill-brand-orange text-brand-orange md:h-4 md:w-4" />
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-brand-orange/35 bg-brand-orange/15 md:h-8 md:w-8 md:rounded-xl">
+                      <Zap className="h-3 w-3 fill-brand-orange text-brand-orange md:h-4 md:w-4" />
                     </div>
                     <span className="section-kicker !text-white/60">{t("trending")}</span>
                   </motion.div>
@@ -216,7 +214,7 @@ export default function HeroCarousel() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="mb-4 line-clamp-3 text-2xl font-bold leading-snug tracking-tight text-white md:line-clamp-4 md:text-4xl md:leading-tight lg:text-[2.65rem] lg:leading-[1.15]"
+                    className="mb-0 line-clamp-2 text-sm font-bold leading-tight tracking-tight text-white sm:line-clamp-3 sm:text-lg sm:leading-snug md:mb-4 md:line-clamp-4 md:text-4xl md:leading-tight lg:text-[2.65rem] lg:leading-[1.15]"
                   >
                     {current!.title}
                   </motion.h1>
@@ -225,7 +223,7 @@ export default function HeroCarousel() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25 }}
-                    className="mb-6 line-clamp-3 text-sm leading-relaxed text-white/85 md:mb-8 md:line-clamp-3 md:text-base"
+                    className="mb-0 mt-2 hidden line-clamp-3 text-sm leading-relaxed text-white/80 md:mb-8 md:mt-0 md:block md:text-base"
                   >
                     {subtitleFor(current!)}
                   </motion.p>
@@ -234,21 +232,23 @@ export default function HeroCarousel() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6"
+                    className="mt-2.5 flex flex-row flex-wrap items-center gap-2 md:mt-0 md:flex-row md:items-center md:gap-6"
                   >
                     <Link
                       href={`/product/${current!.id}`}
-                      className="inline-flex w-full min-w-0 max-w-sm shrink-0 sm:w-auto"
+                      className="inline-flex min-w-0 max-md:flex-1 max-md:min-w-[60%] sm:max-w-sm md:w-auto md:max-w-sm md:flex-initial"
                     >
-                      <span className="inline-flex min-h-12 w-full touch-manipulation items-center justify-center gap-3 rounded-xl bg-brand-orange px-6 py-3.5 text-sm font-semibold uppercase tracking-wider text-white shadow-lg shadow-brand-orange/25 outline-none transition-all hover:bg-brand-orange/90 active:scale-[0.99] sm:w-auto sm:px-10 sm:py-4 sm:text-base">
-                        <span>{t("buyNow")}</span>
-                        <span className="opacity-30">|</span>
-                        <span>{formatPrice(current!.price, locale)}</span>
+                      <span className="inline-flex min-h-10 w-full touch-manipulation items-center justify-center gap-2 rounded-lg bg-brand-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white shadow-lg shadow-brand-orange/25 outline-none transition-all hover:bg-brand-orange/90 active:scale-[0.99] sm:min-h-12 sm:rounded-xl sm:px-6 sm:py-3.5 sm:text-sm md:px-10 md:py-4 md:text-base">
+                        <span className="min-w-0 truncate">{t("buyNow")}</span>
+                        <span className="shrink-0 opacity-30">|</span>
+                        <span className="shrink-0 tabular-nums" dir="ltr" translate="no">
+                          {formatPrice(current!.price, locale)}
+                        </span>
                       </span>
                     </Link>
-                    <div className="flex items-center gap-2.5 ps-0.5 sm:ps-0">
-                      <div className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-green-500" />
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-white/75 md:text-[11px]">
+                    <div className="flex shrink-0 items-center gap-1.5 md:gap-2 md:ps-0">
+                      <div className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-green-500 md:h-2 md:w-2" />
+                      <span className="text-[9px] font-medium uppercase tracking-wider text-white/75 md:text-[11px]">
                         {t("delivery")}
                       </span>
                     </div>
@@ -277,10 +277,13 @@ export default function HeroCarousel() {
             <ChevronRight size={24} className="rtl:rotate-180" />
           </button>
         </div>
+          </>
+        )}
       </div>
 
       {/* Mobile: simple dots, Desktop: thumbnails */}
-      <div className="mt-3 flex items-center justify-center gap-2 md:hidden" role="tablist" aria-label="Hero products">
+      {!showSkeleton && (
+      <div className="mt-2 flex items-center justify-center gap-1.5 md:hidden" role="tablist" aria-label="Hero products">
         {slides.map((product, index) => {
           const active = activeIndex === index;
           return (
@@ -298,7 +301,9 @@ export default function HeroCarousel() {
           );
         })}
       </div>
+      )}
 
+      {!showSkeleton && (
       <div className="relative z-0 mx-auto mt-4 hidden max-w-7xl px-3 pb-0 sm:px-4 md:mt-8 md:block md:pb-0">
         <div
           ref={thumbStripRef}
@@ -348,6 +353,7 @@ export default function HeroCarousel() {
           })}
         </div>
       </div>
+      )}
     </div>
   );
 }

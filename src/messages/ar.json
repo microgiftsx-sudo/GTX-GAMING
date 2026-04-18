@@ -48,9 +48,13 @@
     "summary": "ملخص الطلب",
     "backToStore": "العودة للمتجر",
     "digitalDetail": "رخصة رقمية • تفعيل أونلاين",
-    "discountLabel": "خصم (10%)",
+    "discountLabel": "خصم ({percent}٪)",
     "encrypted": "معالجة مشفرة وآمنة",
-    "discountPlaceholder": "SAVE10"
+    "discountPlaceholder": "GTX-XXXXXXXX",
+    "couponInvalid": "الكود غير صالح أو منتهٍ.",
+    "couponApplied": "تم تطبيق الكوبون.",
+    "removeCoupon": "إزالة",
+    "taxLine": "الضريبة ({rate}٪)"
   },
   "Product": {
     "buyNow": "شراء الآن",

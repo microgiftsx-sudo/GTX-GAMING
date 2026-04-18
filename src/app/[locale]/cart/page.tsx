@@ -5,18 +5,35 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Trash2, ArrowRight, Tag, ShieldCheck, ArrowLeft, Plus, Minus } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { useCart } from '@/context/CartContext';
+import { storefrontImageSrc } from '@/lib/storefront-image';
 import { useTranslations, useLocale } from 'next-intl';
 
 export default function CartPage() {
   const t = useTranslations('Cart');
   const locale = useLocale();
   const isRtl = locale === 'ar';
-  const { cart, removeItem, updateQuantity, subtotal, itemCount, formatPrice } = useCart();
+  const {
+    cart,
+    removeItem,
+    updateQuantity,
+    subtotal,
+    subtotalBeforeTax,
+    taxAmount,
+    taxRatePercent,
+    itemCount,
+    formatPrice,
+    formatDisplayIqd,
+    couponDiscountIqd,
+    grandTotal,
+    appliedCoupon,
+    applyCouponCode,
+    clearAppliedCoupon,
+  } = useCart();
   const [discountCode, setDiscountCode] = useState('');
-  const [discountApplied, setDiscountApplied] = useState(false);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponHint, setCouponHint] = useState<'ok' | 'bad' | null>(null);
 
-  const discountAmount = discountApplied ? subtotal * 0.1 : 0; // 10% mock discount
-  const total = subtotal - discountAmount;
+  const total = grandTotal;
 
   if (itemCount === 0) {
     return (
@@ -58,7 +75,7 @@ export default function CartPage() {
               >
                 <div 
                   className="w-24 aspect-[2/3] rounded-xl bg-cover bg-center shrink-0 border border-edge"
-                  style={{ backgroundImage: `url(${item.image})` }}
+                  style={{ backgroundImage: `url("${storefrontImageSrc(item.image)}")` }}
                 />
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-foreground truncate mb-1">{item.title}</h3>
@@ -107,19 +124,27 @@ export default function CartPage() {
             <div className="space-y-4 mb-8">
               <div className="flex justify-between text-sm font-medium text-muted uppercase tracking-wider text-start">
                 <span>{t('items')} (<span lang="en" translate="no">{itemCount.toLocaleString('en-US', { numberingSystem: 'latn' })}</span>)</span>
-                <span className="text-foreground font-bold tabular-nums" lang="en" translate="no">{formatPrice(subtotal, locale)}</span>
+                <span className="text-foreground font-bold tabular-nums" lang="en" translate="no">
+                  {taxRatePercent > 0 ? formatDisplayIqd(subtotalBeforeTax, locale) : formatDisplayIqd(subtotal, locale)}
+                </span>
               </div>
-              {discountApplied && (
+              {taxRatePercent > 0 && (
+                <div className="flex justify-between text-sm font-medium text-muted uppercase tracking-wider text-start">
+                  <span>{t('taxLine', { rate: taxRatePercent })}</span>
+                  <span className="text-foreground font-bold tabular-nums" lang="en" translate="no">{formatDisplayIqd(taxAmount, locale)}</span>
+                </div>
+              )}
+              {appliedCoupon && couponDiscountIqd > 0 && (
                 <div className="flex justify-between text-sm font-semibold text-brand-orange uppercase tracking-wider text-start">
-                  <span>{t('discountLabel')}</span>
-                  <span className="font-black">- {formatPrice(discountAmount, locale)}</span>
+                  <span>{t('discountLabel', { percent: appliedCoupon.percentOff })}</span>
+                  <span className="font-black">- {formatDisplayIqd(couponDiscountIqd, locale)}</span>
                 </div>
               )}
               <div className="pt-4 border-t border-edge flex flex-col gap-1">
                 <div className="flex justify-between items-end">
                    <span className="text-xs font-medium text-muted uppercase tracking-wider leading-none">{t('total')}</span>
                    <p className="text-4xl font-bold text-foreground leading-none tracking-tight tabular-nums" lang="en" translate="no">
-                     {formatPrice(total, locale)}
+                     {formatDisplayIqd(total, locale)}
                    </p>
                 </div>
               </div>
@@ -128,24 +153,59 @@ export default function CartPage() {
             {/* Discount Code */}
             <div className="mb-8">
               <label className="text-[10px] font-medium text-faint uppercase tracking-wider mb-3 block text-start">{t('discountCode')}</label>
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
+              <div className="flex gap-2 flex-wrap">
+                <div className="flex-1 min-w-[140px] relative">
                   <Tag size={16} className="absolute start-4 top-1/2 -translate-y-1/2 text-white/20" />
                   <input 
                     type="text" 
                     placeholder={t('discountPlaceholder')}
                     value={discountCode}
-                    onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-                    className="w-full bg-surface border border-edge rounded-xl py-3 ps-11 pe-4 text-xs font-medium text-foreground uppercase placeholder:text-faint focus:outline-none focus:border-brand-orange/45 focus:ring-2 focus:ring-focus-ring transition-all outline-none"
+                    disabled={Boolean(appliedCoupon)}
+                    onChange={(e) => {
+                      setDiscountCode(e.target.value.toUpperCase());
+                      setCouponHint(null);
+                    }}
+                    className="w-full bg-surface border border-edge rounded-xl py-3 ps-11 pe-4 text-xs font-medium text-foreground uppercase placeholder:text-faint focus:outline-none focus:border-brand-orange/45 focus:ring-2 focus:ring-focus-ring transition-all outline-none disabled:opacity-50"
                   />
                 </div>
                 <button 
-                  onClick={() => { if(discountCode === 'SAVE10') setDiscountApplied(true); }}
-                  className="px-4 bg-surface-elevated border border-edge text-xs font-semibold uppercase rounded-xl hover:bg-white/5 transition-all outline-none"
+                  type="button"
+                  disabled={couponBusy || Boolean(appliedCoupon) || !discountCode.trim()}
+                  onClick={async () => {
+                    setCouponBusy(true);
+                    setCouponHint(null);
+                    const r = await applyCouponCode(discountCode);
+                    setCouponBusy(false);
+                    if (r.ok) {
+                      setCouponHint('ok');
+                    } else {
+                      setCouponHint('bad');
+                    }
+                  }}
+                  className="px-4 bg-surface-elevated border border-edge text-xs font-semibold uppercase rounded-xl hover:bg-white/5 transition-all outline-none disabled:opacity-40"
                 >
                   {t('apply')}
                 </button>
+                {appliedCoupon && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearAppliedCoupon();
+                      setDiscountCode('');
+                      setCouponHint(null);
+                    }}
+                    className="px-4 border border-edge text-xs font-semibold uppercase rounded-xl text-muted hover:text-foreground transition-colors outline-none"
+                  >
+                    {t('removeCoupon')}
+                  </button>
+                )}
               </div>
+              {couponHint === 'ok' && (
+                <p className="mt-2 text-xs text-emerald-400/90 text-start">{t('couponApplied')}</p>
+              )}
+              {couponHint === 'bad' && (
+                <p className="mt-2 text-xs text-red-400/90 text-start">{t('couponInvalid')}</p>
+              )}
             </div>
 
             <Link href="/checkout" className="w-full py-5 bg-brand-purple text-white font-semibold rounded-2xl shadow-[0_16px_36px_rgba(181,0,255,0.22)] hover:bg-brand-purple/90 active:scale-95 transition-all text-center flex items-center justify-center gap-3 outline-none uppercase tracking-wider">
