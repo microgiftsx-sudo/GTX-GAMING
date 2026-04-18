@@ -210,7 +210,7 @@ export default function MegaHeader() {
         </div>
 
         {/* Search Bar */}
-        <div className="group relative z-10 col-span-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1 md:max-w-2xl">
+        <div className="relative z-10 col-span-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1 md:max-w-2xl">
           <form onSubmit={handleSearchSubmit} className={`relative flex items-center transition-all duration-300 ${searchFocused ? 'md:scale-[1.02]' : ''}`}>
             <Search className="absolute start-4 text-muted w-4 h-4 md:w-5 md:h-5 pointer-events-none" />
             <input 
@@ -273,10 +273,10 @@ export default function MegaHeader() {
                         <Link 
                           key={result.id}
                           href={`/product/${result.id}`}
-                          className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 group border border-transparent hover:border-white/5 transition-all outline-none"
+                          className="group/row flex items-center justify-between p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all outline-none"
                         >
                           <div className="flex flex-col text-start">
-                            <span className="text-xs md:text-sm font-semibold text-foreground group-hover:text-brand-orange transition-colors">
+                            <span className="text-xs md:text-sm font-semibold text-foreground group-hover/row:text-brand-orange transition-colors">
                               {result.title}
                             </span>
                             <span className="text-[9px] md:text-[10px] text-muted uppercase font-medium">
