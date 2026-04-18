@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { EUR_PER_IQD } from '@/lib/currency';
-import { applyTaxToBaseIqd, taxAmountFromBase } from '@/lib/tax-math';
+import { netFromGrossIqd } from '@/lib/tax-math';
 import { discountIqdFromPercent, normalizeCouponCode } from '@/lib/coupon-math';
 
 export type AppliedCoupon = { code: string; percentOff: number };
@@ -22,11 +22,11 @@ interface CartContextType {
   updateQuantity: (id: string | number, quantity: number) => void;
   clearCart: () => void;
   itemCount: number;
-  /** IQD sum of line items before tax */
+  /** When VAT is on: net IQD (ex-VAT). When off: same as subtotal (gross). */
   subtotalBeforeTax: number;
-  /** IQD tax amount on current cart */
+  /** IQD VAT portion of the cart (from gross line totals). */
   taxAmount: number;
-  /** IQD total including tax (before coupon) */
+  /** IQD gross line total (VAT-inclusive when tax is enabled), before coupon */
   subtotal: number;
   /** IQD discount from applied coupon */
   couponDiscountIqd: number;
@@ -39,7 +39,7 @@ interface CartContextType {
   // Currency Engine
   currency: string;
   setCurrency: (c: string) => void;
-  /** List price in IQD (before tax) → formatted in selected currency (tax applied for IQD base) */
+  /** IQD list price (VAT-inclusive from API) → formatted in selected currency */
   formatPrice: (priceInIQD: number, locale?: string) => string;
   /** IQD amount already final (totals, discounts) — currency conversion only, no extra tax */
   formatDisplayIqd: (amountIqd: number, locale?: string) => string;
@@ -68,7 +68,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load from localStorage
   useEffect(() => {
-    const savedCart = localStorage.getItem('gtx-cart');
+    const savedCart = localStorage.getItem('gtx-cart-v2');
     const savedCurr = localStorage.getItem('gtx-currency');
     const savedCoupon = localStorage.getItem('gtx-applied-coupon');
     if (savedCart) {
@@ -104,7 +104,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Save to localStorage
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem('gtx-cart', JSON.stringify(cart));
+      localStorage.setItem('gtx-cart-v2', JSON.stringify(cart));
     }
   }, [cart, isLoaded]);
 
@@ -166,9 +166,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const formatPrice = (priceInIQD: number, locale: string = 'en') => {
-    const withTaxIqd = applyTaxToBaseIqd(priceInIQD, taxRatePercent);
     const rate = RATES[currency] || 1;
-    const value = withTaxIqd * rate;
+    const value = Math.round(priceInIQD) * rate;
 
     if (currency === 'IQD') {
       const symbol = locale === 'ar' ? 'د.ع' : 'IQD';
@@ -202,18 +201,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
-  const subtotalBeforeTax = useMemo(
+  /** Gross IQD (VAT-inclusive line totals from API). */
+  const grossSubtotal = useMemo(
     () => cart.reduce((acc, item) => acc + item.price * item.quantity, 0),
     [cart],
   );
-  const taxAmount = useMemo(
-    () => taxAmountFromBase(subtotalBeforeTax, taxRatePercent),
-    [subtotalBeforeTax, taxRatePercent],
-  );
-  const subtotal = useMemo(
-    () => applyTaxToBaseIqd(subtotalBeforeTax, taxRatePercent),
-    [subtotalBeforeTax, taxRatePercent],
-  );
+  const subtotalBeforeTax = useMemo(() => {
+    if (taxRatePercent <= 0) return grossSubtotal;
+    return netFromGrossIqd(grossSubtotal, taxRatePercent);
+  }, [grossSubtotal, taxRatePercent]);
+  const taxAmount = useMemo(() => {
+    if (taxRatePercent <= 0) return 0;
+    return grossSubtotal - subtotalBeforeTax;
+  }, [grossSubtotal, subtotalBeforeTax, taxRatePercent]);
+  const subtotal = grossSubtotal;
 
   const couponDiscountIqd = useMemo(() => {
     if (!appliedCoupon) return 0;

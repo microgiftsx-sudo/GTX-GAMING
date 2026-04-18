@@ -3,6 +3,8 @@ import path from 'node:path';
 import { fetchProductByKinguinId, fetchProductsPage } from '@/lib/kinguin/client';
 import { fromKinguinJson } from '@/lib/store-product';
 import type { StoreProduct } from '@/lib/store-product';
+import { applyVatToStoreProduct } from '@/lib/store-product-vat';
+import { getTaxRatePercent } from '@/lib/tax';
 
 const FILE = path.join(process.cwd(), 'data', 'hero-products.json');
 
@@ -56,6 +58,7 @@ export async function setHeroProductIds(ids: string[]): Promise<string[]> {
  * Products for the hero: explicit IDs when set, otherwise first page of catalog (same as before).
  */
 export async function getHeroStoreProducts(): Promise<StoreProduct[]> {
+  const taxRate = await getTaxRatePercent();
   const ids = await getHeroProductIds();
   if (ids.length === 0) {
     const data = await fetchProductsPage({
@@ -64,7 +67,9 @@ export async function getHeroStoreProducts(): Promise<StoreProduct[]> {
       sortBy: 'updatedAt',
       sortType: 'desc',
     });
-    return (data.results ?? []).map(fromKinguinJson);
+    return (data.results ?? [])
+      .map(fromKinguinJson)
+      .map((p) => applyVatToStoreProduct(p, taxRate));
   }
 
   const items: StoreProduct[] = [];
@@ -73,7 +78,7 @@ export async function getHeroStoreProducts(): Promise<StoreProduct[]> {
     if (!Number.isFinite(kid)) continue;
     try {
       const json = await fetchProductByKinguinId(kid);
-      items.push(fromKinguinJson(json));
+      items.push(applyVatToStoreProduct(fromKinguinJson(json), taxRate));
     } catch {
       /* omit missing or API errors */
     }

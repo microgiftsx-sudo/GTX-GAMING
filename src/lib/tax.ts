@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-export { applyTaxToBaseIqd, taxAmountFromBase } from './tax-math';
+export { applyTaxToBaseIqd, netFromGrossIqd, taxAmountFromBase } from './tax-math';
 
 const FILE = path.join(process.cwd(), 'data', 'tax-settings.json');
 
