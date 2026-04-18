@@ -3,6 +3,8 @@ import '@/lib/load-env';
 import { fetchProductByKinguinId } from '@/lib/kinguin/client';
 import { extractGalleryUrls, extractYoutubeIds } from '@/lib/kinguin/media';
 import { fromKinguinJson } from '@/lib/store-product';
+import { applyVatToStoreProduct } from '@/lib/store-product-vat';
+import { getTaxRatePercent } from '@/lib/tax';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +20,8 @@ export async function GET(
     }
 
     const json = await fetchProductByKinguinId(kid);
-    const base = fromKinguinJson(json);
+    const taxRate = await getTaxRatePercent();
+    const base = applyVatToStoreProduct(fromKinguinJson(json), taxRate);
     const galleryUrls = extractGalleryUrls(json);
     const youtubeIds = extractYoutubeIds(json);
     return NextResponse.json({

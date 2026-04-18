@@ -9,7 +9,7 @@ import {
   normalizeCouponCode,
   validateCouponCode,
 } from '@/lib/coupons';
-import { applyTaxToBaseIqd, getTaxRatePercent, taxAmountFromBase } from '@/lib/tax';
+import { getTaxRatePercent, netFromGrossIqd } from '@/lib/tax';
 import { sendOrderToTelegram } from '@/lib/telegram-bot';
 
 export const dynamic = 'force-dynamic';
@@ -93,9 +93,20 @@ export async function POST(req: NextRequest) {
           : 0;
 
     const taxRate = await getTaxRatePercent();
-    const subtotalBeforeTax = Math.round(baseTotal);
-    const totalAfterTax = applyTaxToBaseIqd(subtotalBeforeTax, taxRate);
-    const taxAmount = taxAmountFromBase(subtotalBeforeTax, taxRate);
+    /** Cart line prices are VAT-inclusive (same as storefront API). */
+    const grossTotal = Math.round(baseTotal);
+    let subtotalBeforeTax: number;
+    let totalAfterTax: number;
+    let taxAmount: number;
+    if (taxRate <= 0) {
+      subtotalBeforeTax = grossTotal;
+      totalAfterTax = grossTotal;
+      taxAmount = 0;
+    } else {
+      totalAfterTax = grossTotal;
+      subtotalBeforeTax = netFromGrossIqd(grossTotal, taxRate);
+      taxAmount = grossTotal - subtotalBeforeTax;
+    }
 
     let finalTotal = totalAfterTax;
     let discountAmount = 0;

@@ -3,6 +3,8 @@ import '@/lib/load-env';
 import { fetchProductsPage } from '@/lib/kinguin/client';
 import { iqdToEur } from '@/lib/currency';
 import { fromKinguinJson } from '@/lib/store-product';
+import { applyVatToStoreProduct } from '@/lib/store-product-vat';
+import { getTaxRatePercent } from '@/lib/tax';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,10 +37,15 @@ export async function GET(req: NextRequest) {
     const platformParam =
       platform.length > 0 ? platform.map((p) => p.toLowerCase()).join(',') : undefined;
 
-    const minEur = minPrice > 0 ? iqdToEur(minPrice) : undefined;
+    const taxRate = await getTaxRatePercent();
+    /** Search UI sends IQD bounds as storefront (VAT-inclusive) prices; Kinguin uses base IQD. */
+    const iqdToKinguinBase = (iqd: number) =>
+      taxRate > 0 ? iqd / (1 + taxRate / 100) : iqd;
+
+    const minEur = minPrice > 0 ? iqdToEur(iqdToKinguinBase(minPrice)) : undefined;
     const maxEur =
       Number.isFinite(maxPrice) && maxPrice < Number.MAX_SAFE_INTEGER / 4
-        ? iqdToEur(maxPrice)
+        ? iqdToEur(iqdToKinguinBase(maxPrice))
         : undefined;
 
     const data = await fetchProductsPage({
@@ -53,7 +60,9 @@ export async function GET(req: NextRequest) {
       priceTo: maxEur,
     });
 
-    let items = (data.results ?? []).map(fromKinguinJson);
+    let items = (data.results ?? [])
+      .map(fromKinguinJson)
+      .map((p) => applyVatToStoreProduct(p, taxRate));
 
     if (sort === 'price-low') {
       items = [...items].sort((a, b) => a.price - b.price);
