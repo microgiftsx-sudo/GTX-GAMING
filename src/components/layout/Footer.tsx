@@ -4,9 +4,11 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { Camera, Gamepad2, Send } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import { useCookieConsent } from '@/context/CookieConsentContext';
 
 export default function Footer() {
   const t = useTranslations('Footer');
+  const { openSettings, bannerVisible } = useCookieConsent();
   const d = useTranslations('Data');
 
   const socialLinks = [
@@ -26,7 +28,9 @@ export default function Footer() {
     "text-muted hover:text-brand-orange transition-colors text-sm py-2.5 -my-1 min-h-11 inline-flex items-center touch-manipulation";
 
   return (
-    <footer className="mt-auto bg-brand-dark/80 border-t border-edge pt-10 md:pt-16 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:pb-10 backdrop-blur-sm">
+    <footer
+      className={`mt-auto bg-brand-dark/80 border-t border-edge pt-10 md:pt-16 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:pb-10 backdrop-blur-sm transition-[margin] duration-200 ${bannerVisible ? 'mb-52 sm:mb-44' : ''}`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-4 lg:gap-10 mb-10 md:mb-14">
           {/* Brand */}
@@ -122,6 +126,13 @@ export default function Footer() {
              <Link href="#" className="text-muted hover:text-foreground transition-colors text-xs font-medium min-h-11 inline-flex items-center touch-manipulation">
                {t('terms')}
              </Link>
+             <button
+               type="button"
+               onClick={openSettings}
+               className="text-muted hover:text-foreground transition-colors text-xs font-medium min-h-11 inline-flex items-center touch-manipulation"
+             >
+               {t('cookieSettings')}
+             </button>
           </div>
         </div>
       </div>

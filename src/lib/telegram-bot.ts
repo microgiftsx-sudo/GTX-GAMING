@@ -27,6 +27,7 @@ import {
   normalizeCouponCode,
   setCouponActive,
 } from '@/lib/coupons';
+import { getHeroProductIds, setHeroProductIds } from '@/lib/hero-products';
 
 type TelegramApiResponse<T> = {
   ok: boolean;
@@ -391,6 +392,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
           '/gencoupon PERCENT [maxUses] [days] — create discount code',
           '/coupons — list coupons',
           '/coupon_off CODE — disable a coupon',
+          '/hero — show hero product IDs; set: /hero 123 456; clear: /hero clear',
         ].join('\n'),
       );
       return;
@@ -543,6 +545,46 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       return;
     }
 
+    if (cmdToken === '/hero' || text.startsWith('/hero ')) {
+      await clearPendingPaymentEdit(userId);
+      const parts = text.trim().split(/\s+/);
+      if (parts.length === 1) {
+        const ids = await getHeroProductIds();
+        await sendText(
+          chatId,
+          [
+            '🖼 Home hero — Kinguin product IDs:',
+            ids.length ? ids.join(' → ') : '(none — carousel uses default catalog)',
+            '',
+            `Set up to 6 IDs: /hero 12345 67890`,
+            'Use default catalog again: /hero clear',
+          ].join('\n'),
+        );
+        return;
+      }
+      if (parts[1].toLowerCase() === 'clear') {
+        await setHeroProductIds([]);
+        await sendText(
+          chatId,
+          'Hero cleared. Carousel will load the default featured list from the catalog.',
+        );
+        return;
+      }
+      const next = await setHeroProductIds(parts.slice(1));
+      if (next.length === 0) {
+        await sendText(
+          chatId,
+          'No valid numeric IDs. Send Kinguin product IDs, e.g. /hero 12345 67890',
+        );
+        return;
+      }
+      await sendText(
+        chatId,
+        `Hero updated (${next.length}): ${next.join(' → ')}`,
+      );
+      return;
+    }
+
     if (cmdToken === '/coupon_off' || text.startsWith('/coupon_off ')) {
       await clearPendingPaymentEdit(userId);
       const parts = text.split(/\s+/);
@@ -597,7 +639,10 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       return;
     }
 
-    await sendText(chatId, 'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons');
+    await sendText(
+      chatId,
+      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero',
+    );
     return;
   }
 

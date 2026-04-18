@@ -152,10 +152,25 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "rights": "All Rights Reserved.",
+    "cookieSettings": "Cookie settings",
     "payments": "Local Payment Methods",
     "latest": "Latest Releases",
     "top": "Top Sellers",
     "sale": "On Sale"
+  },
+  "CookieConsent": {
+    "title": "We value your privacy",
+    "description": "We use cookies to run the store (cart, security) and, with your consent, to measure traffic and show relevant offers. You can change your choice anytime.",
+    "privacyLink": "Privacy policy",
+    "analyticsTitle": "Analytics & performance",
+    "analyticsDesc": "Helps us understand how the site is used so we can improve it.",
+    "marketingTitle": "Marketing",
+    "marketingDesc": "Allows personalized recommendations and promotional content.",
+    "customize": "Customize",
+    "reject": "Reject non-essential",
+    "save": "Save choices",
+    "acceptAll": "Accept all",
+    "cancel": "Cancel"
   },
   "Metadata": {
     "title": "GTX GAMING | Premium Digital Games Store",
