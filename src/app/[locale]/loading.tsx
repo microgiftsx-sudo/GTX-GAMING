@@ -1,10 +1,12 @@
-import SiteLoadingScreen from "@/components/ui/SiteLoadingScreen";
-
-/** Shown during route transitions (Suspense) for locale segment. */
+/** Route transition: compact indicator — page shell stays visible; no full-screen image wait. */
 export default function Loading() {
   return (
-    <div className="flex min-h-[min(70vh,560px)] w-full flex-1 items-center justify-center py-16">
-      <SiteLoadingScreen />
+    <div className="flex min-h-[30vh] w-full flex-1 flex-col items-center justify-start pt-16">
+      <div
+        className="h-8 w-8 rounded-full border-2 border-white/10 border-t-brand-orange animate-spin"
+        aria-busy="true"
+        aria-label="Loading"
+      />
     </div>
   );
 }

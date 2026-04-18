@@ -3,6 +3,13 @@ import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import '@/lib/load-env';
 import { createOrder, listPaymentMethods, OrderItem } from '@/lib/orders';
+import {
+  discountIqdFromPercent,
+  incrementCouponUse,
+  normalizeCouponCode,
+  validateCouponCode,
+} from '@/lib/coupons';
+import { applyTaxToBaseIqd, getTaxRatePercent, taxAmountFromBase } from '@/lib/tax';
 import { sendOrderToTelegram } from '@/lib/telegram-bot';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +38,7 @@ export async function POST(req: NextRequest) {
     const paymentMethodId = String(form.get('paymentMethodId') ?? '').trim();
     const rawItems = String(form.get('items') ?? '[]');
     const rawSubtotal = Number(form.get('subtotal') ?? 0);
+    const couponCodeRaw = normalizeCouponCode(String(form.get('couponCode') ?? ''));
     const receipt = form.get('receipt');
 
     if (!email || !email.includes('@')) {
@@ -76,20 +84,54 @@ export async function POST(req: NextRequest) {
       kinguinUrl: kinguinProductUrl(String(item.id)),
     }));
 
-    const subtotal =
-      rawSubtotal > 0
-        ? rawSubtotal
-        : items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const sumFromItems = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const baseTotal =
+      sumFromItems > 0
+        ? sumFromItems
+        : rawSubtotal > 0
+          ? rawSubtotal
+          : 0;
+
+    const taxRate = await getTaxRatePercent();
+    const subtotalBeforeTax = Math.round(baseTotal);
+    const totalAfterTax = applyTaxToBaseIqd(subtotalBeforeTax, taxRate);
+    const taxAmount = taxAmountFromBase(subtotalBeforeTax, taxRate);
+
+    let finalTotal = totalAfterTax;
+    let discountAmount = 0;
+    let couponPercentOff: number | undefined;
+    let appliedCouponCode: string | undefined;
+
+    if (couponCodeRaw.length > 0) {
+      const v = await validateCouponCode(couponCodeRaw);
+      if (!v.ok) {
+        return NextResponse.json({ error: 'Invalid or expired coupon', reason: v.reason }, { status: 400 });
+      }
+      couponPercentOff = v.percentOff;
+      appliedCouponCode = couponCodeRaw.trim().toUpperCase().replace(/\s+/g, '');
+      discountAmount = discountIqdFromPercent(totalAfterTax, v.percentOff);
+      finalTotal = Math.max(0, totalAfterTax - discountAmount);
+    }
 
     const order = await createOrder({
       email,
       locale,
       paymentMethodId: selectedMethod.id,
       paymentMethodName: selectedMethod.name,
-      subtotal,
+      subtotal: finalTotal,
       receiptUrl,
       items,
+      subtotalBeforeTax,
+      taxRatePercent: taxRate,
+      taxAmount,
+      discountAmount: discountAmount > 0 ? discountAmount : undefined,
+      couponCode: appliedCouponCode,
+      couponPercentOff,
     });
+
+    if (appliedCouponCode) {
+      await incrementCouponUse(appliedCouponCode);
+    }
 
     try {
       await sendOrderToTelegram(order);

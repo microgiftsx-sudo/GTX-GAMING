@@ -13,7 +13,7 @@ export default function CheckoutPage() {
   const ui = useTranslations('UI');
   const locale = useLocale();
   const isRtl = locale === 'ar';
-  const { cart, subtotal, formatPrice, clearCart } = useCart();
+  const { cart, grandTotal, appliedCoupon, formatDisplayIqd, clearCart } = useCart();
   const [currentStep, setCurrentStep] = useState(0);
   const [email, setEmail] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -70,7 +70,10 @@ export default function CheckoutPage() {
       form.set('email', email);
       form.set('locale', locale);
       form.set('paymentMethodId', selectedMethod.id);
-      form.set('subtotal', String(subtotal));
+      form.set('subtotal', String(grandTotal));
+      if (appliedCoupon?.code) {
+        form.set('couponCode', appliedCoupon.code);
+      }
       form.set(
         'items',
         JSON.stringify(
@@ -167,7 +170,7 @@ export default function CheckoutPage() {
                 </div>
                  <div className="p-4 bg-brand-card/50 rounded-xl border border-white/5 flex justify-between items-center text-start">
                     <span className="text-xs font-bold text-white/40 uppercase">{t('amount')}</span>
-                    <span className="text-lg font-black text-brand-orange leading-none" dir="ltr">{formatPrice(subtotal, locale)}</span>
+                    <span className="text-lg font-black text-brand-orange leading-none" dir="ltr">{formatDisplayIqd(grandTotal, locale)}</span>
                  </div>
                 <button onClick={nextStep} disabled={!email.includes('@')} className="w-full py-5 bg-brand-orange text-white font-black rounded-2xl shadow-xl hover:bg-brand-orange/90 active:scale-95 transition-all text-lg disabled:opacity-50 disabled:pointer-events-none outline-none tracking-widest uppercase">
                   {ui('continueToPayment')}
@@ -251,7 +254,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{t('amount')}</span>
-                    <span className="text-lg font-black text-brand-orange" lang="en" translate="no">{formatPrice(subtotal, locale)}</span>
+                    <span className="text-lg font-black text-brand-orange" lang="en" translate="no">{formatDisplayIqd(grandTotal, locale)}</span>
                   </div>
                 </div>
 

@@ -37,10 +37,19 @@ export type OrderRecord = {
   locale: string;
   paymentMethodId: string;
   paymentMethodName: string;
+  /** Total IQD due (including tax when tax is enabled) */
   subtotal: number;
   receiptUrl: string;
   items: OrderItem[];
   notes?: string;
+  /** IQD sum of line items before tax */
+  subtotalBeforeTax?: number;
+  taxRatePercent?: number;
+  taxAmount?: number;
+  /** IQD discount off total after tax */
+  discountAmount?: number;
+  couponCode?: string;
+  couponPercentOff?: number;
 };
 
 const DATA_DIR = path.join(process.cwd(), 'data');

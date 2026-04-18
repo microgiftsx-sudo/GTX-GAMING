@@ -15,6 +15,18 @@ import {
   setPendingPaymentEdit,
   type PaymentEditField,
 } from '@/lib/payment-edit-state';
+import {
+  applyTaxToBaseIqd,
+  getTaxRatePercent,
+  setTaxRatePercent,
+  taxAmountFromBase,
+} from '@/lib/tax';
+import {
+  createCoupon,
+  listCoupons,
+  normalizeCouponCode,
+  setCouponActive,
+} from '@/lib/coupons';
 
 type TelegramApiResponse<T> = {
   ok: boolean;
@@ -87,22 +99,24 @@ function orderKeyboard(order: OrderRecord) {
     url: item.kinguinUrl,
   }));
 
-  return {
-    inline_keyboard: [
-      productButtons,
-      [{ text: 'Proof Image', url: order.receiptUrl }],
-      [
-        { text: 'Approve', callback_data: `order:set:${order.id}:completed` },
-        { text: 'Processing', callback_data: `order:set:${order.id}:processing` },
-      ],
-      [
-        { text: 'Hold', callback_data: `order:set:${order.id}:on_hold` },
-        { text: 'Refund', callback_data: `order:set:${order.id}:refunded` },
-      ],
-      [{ text: 'Cancel', callback_data: `order:set:${order.id}:cancelled` }],
-      [{ text: 'Payment Methods', callback_data: 'payment:list' }],
+  const rows: { text: string; callback_data?: string; url?: string }[][] = [];
+  if (productButtons.length > 0) {
+    rows.push(productButtons);
+  }
+  rows.push(
+    [
+      { text: 'Approve', callback_data: `order:set:${order.id}:completed` },
+      { text: 'Processing', callback_data: `order:set:${order.id}:processing` },
     ],
-  };
+    [
+      { text: 'Hold', callback_data: `order:set:${order.id}:on_hold` },
+      { text: 'Refund', callback_data: `order:set:${order.id}:refunded` },
+    ],
+    [{ text: 'Cancel', callback_data: `order:set:${order.id}:cancelled` }],
+    [{ text: 'Payment Methods', callback_data: 'payment:list' }],
+  );
+
+  return { inline_keyboard: rows };
 }
 
 function orderMessage(order: OrderRecord) {
@@ -111,13 +125,67 @@ function orderMessage(order: OrderRecord) {
     `Status: ${statusLabel(order.status)}`,
     `Email: ${order.email}`,
     `Payment: ${order.paymentMethodName}`,
-    `Subtotal (IQD): ${order.subtotal.toLocaleString('en-US')}`,
+  ];
+  const discount = order.discountAmount ?? 0;
+  const hasCoupon = discount > 0 && Boolean(order.couponCode);
+  const afterTaxBeforeCoupon = hasCoupon ? order.subtotal + discount : order.subtotal;
+
+  if (
+    order.taxRatePercent != null &&
+    order.taxRatePercent > 0 &&
+    order.subtotalBeforeTax != null
+  ) {
+    lines.push(
+      `Subtotal (before tax): ${order.subtotalBeforeTax.toLocaleString('en-US')} IQD`,
+      `Tax (${order.taxRatePercent}%): ${(order.taxAmount ?? 0).toLocaleString('en-US')} IQD`,
+      `Total after tax: ${afterTaxBeforeCoupon.toLocaleString('en-US')} IQD`,
+    );
+    if (hasCoupon && order.couponCode) {
+      lines.push(
+        `Coupon ${order.couponCode} (${order.couponPercentOff ?? '?'}%): −${discount.toLocaleString('en-US')} IQD`,
+        `Amount due (IQD): ${order.subtotal.toLocaleString('en-US')}`,
+      );
+    }
+  } else if (hasCoupon && order.couponCode) {
+    lines.push(
+      `Subtotal (after tax): ${afterTaxBeforeCoupon.toLocaleString('en-US')} IQD`,
+      `Coupon ${order.couponCode} (${order.couponPercentOff ?? '?'}%): −${discount.toLocaleString('en-US')} IQD`,
+      `Amount due (IQD): ${order.subtotal.toLocaleString('en-US')}`,
+    );
+  } else {
+    lines.push(`Subtotal (IQD): ${order.subtotal.toLocaleString('en-US')}`);
+  }
+  lines.push(
     `Created: ${order.createdAt}`,
     '',
-    'Items:',
-    ...order.items.map((item) => `• ${item.title} x${item.quantity} (${item.price.toLocaleString('en-US')} IQD)`),
-  ];
+    'Items (unit list / IQD):',
+    ...order.items.map(
+      (item) => `• ${item.title} x${item.quantity} (${item.price.toLocaleString('en-US')} IQD)`,
+    ),
+  );
   return lines.join('\n');
+}
+
+const TELEGRAM_CAPTION_MAX = 1024;
+
+function orderCaptionForPhoto(order: OrderRecord) {
+  const text = orderMessage(order);
+  if (text.length <= TELEGRAM_CAPTION_MAX) return text;
+  return `${text.slice(0, TELEGRAM_CAPTION_MAX - 3)}...`;
+}
+
+async function sendOrderPhotoWithCaption(
+  chatId: number | string,
+  photoUrl: string,
+  caption: string,
+  replyMarkup: Record<string, unknown>,
+) {
+  await callTelegram('sendPhoto', {
+    chat_id: chatId,
+    photo: photoUrl,
+    caption,
+    reply_markup: replyMarkup,
+  });
 }
 
 async function sendText(chatId: number | string, text: string, replyMarkup?: Record<string, unknown>) {
@@ -275,7 +343,26 @@ function normalizeFieldValue(field: PaymentEditField, raw: string): string {
 
 export async function sendOrderToTelegram(order: OrderRecord) {
   if (!DEFAULT_CHAT_ID) return;
-  await sendText(DEFAULT_CHAT_ID, orderMessage(order), orderKeyboard(order));
+  const kb = orderKeyboard(order);
+  const caption = orderCaptionForPhoto(order);
+  const receipt = order.receiptUrl?.trim() ?? '';
+  const canUsePhoto = /^https?:\/\//i.test(receipt);
+
+  if (canUsePhoto) {
+    try {
+      await sendOrderPhotoWithCaption(DEFAULT_CHAT_ID, receipt, caption, kb);
+      return;
+    } catch {
+      await sendText(
+        DEFAULT_CHAT_ID,
+        `${orderMessage(order)}\n\nProof: ${receipt}`,
+        kb,
+      );
+      return;
+    }
+  }
+
+  await sendText(DEFAULT_CHAT_ID, orderMessage(order), kb);
 }
 
 export async function handleTelegramUpdate(update: TelegramUpdate) {
@@ -294,7 +381,17 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       await clearPendingPaymentEdit(userId);
       await sendText(
         chatId,
-        'GTX Bot ready.\nCommands:\n/orders — recent orders\n/payments — toggle methods; tap ✏️ to edit name, account, barcode URL, icon',
+        [
+          'GTX Bot ready.',
+          'Commands:',
+          '/orders — recent orders',
+          '/payments — toggle methods; tap ✏️ to edit name, account, barcode URL, icon',
+          '/tax — show VAT %; set: /tax 5',
+          '/calc AMOUNT — tax calculator (IQD); optional: /calc 50000 10',
+          '/gencoupon PERCENT [maxUses] [days] — create discount code',
+          '/coupons — list coupons',
+          '/coupon_off CODE — disable a coupon',
+        ].join('\n'),
       );
       return;
     }
@@ -308,6 +405,161 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       await sendPaymentMethods(chatId);
       return;
     }
+
+    const cmdToken = text.split(/\s+/)[0]?.split('@')[0] ?? '';
+    if (cmdToken === '/tax' || text.startsWith('/tax ')) {
+      await clearPendingPaymentEdit(userId);
+      const parts = text.split(/\s+/);
+      if (parts.length === 1) {
+        const r = await getTaxRatePercent();
+        await sendText(
+          chatId,
+          `VAT / tax rate: ${r}%\n\nSet: /tax 5\nCalculator: /calc 50000\n(or /calc 50000 10 for 10% one-off)`,
+        );
+        return;
+      }
+      const rate = Number(parts[1]);
+      if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+        await sendText(chatId, 'Usage: /tax 0–100 (e.g. /tax 5 for 5%)');
+        return;
+      }
+      const next = await setTaxRatePercent(rate);
+      await sendText(
+        chatId,
+        `Tax rate set to ${next}%. List prices on the store will show this VAT; checkout totals match.`,
+      );
+      return;
+    }
+
+    if (cmdToken === '/calc' || text.startsWith('/calc ')) {
+      await clearPendingPaymentEdit(userId);
+      const parts = text.split(/\s+/);
+      if (parts.length < 2) {
+        await sendText(
+          chatId,
+          'Usage: /calc AMOUNT_IQD\nExample: /calc 50000\nOptional: /calc 50000 10 (use 10% instead of current rate)',
+        );
+        return;
+      }
+      const amount = Number(parts[1]);
+      if (!Number.isFinite(amount) || amount < 0) {
+        await sendText(chatId, 'Invalid amount.');
+        return;
+      }
+      const rate =
+        parts.length >= 3 ? Number(parts[2]) : await getTaxRatePercent();
+      if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+        await sendText(chatId, 'Invalid tax %.');
+        return;
+      }
+      const total = applyTaxToBaseIqd(amount, rate);
+      const tax = taxAmountFromBase(amount, rate);
+      await sendText(
+        chatId,
+        [
+          `Base: ${Math.round(amount).toLocaleString('en-US')} IQD`,
+          `Tax (${rate}%): ${tax.toLocaleString('en-US')} IQD`,
+          `Total: ${total.toLocaleString('en-US')} IQD`,
+        ].join('\n'),
+      );
+      return;
+    }
+
+    if (cmdToken === '/gencoupon' || text.startsWith('/gencoupon ')) {
+      await clearPendingPaymentEdit(userId);
+      const parts = text.split(/\s+/);
+      if (parts.length < 2) {
+        await sendText(
+          chatId,
+          [
+            'Usage: /gencoupon PERCENT [maxUses] [expiresInDays]',
+            'Examples:',
+            '/gencoupon 15 → 15% off, 1 use',
+            '/gencoupon 15 5 → 15% off, 5 uses',
+            '/gencoupon 15 5 30 → 5 uses, expires in 30 days',
+          ].join('\n'),
+        );
+        return;
+      }
+      const percent = Number(parts[1]);
+      if (!Number.isFinite(percent) || percent < 1 || percent > 100) {
+        await sendText(chatId, 'PERCENT must be between 1 and 100.');
+        return;
+      }
+      let maxUses: number | undefined;
+      let expiresInDays: number | null | undefined;
+      if (parts.length >= 3) {
+        const mu = Number(parts[2]);
+        if (!Number.isFinite(mu) || mu < 1 || mu > 1_000_000) {
+          await sendText(chatId, 'maxUses must be between 1 and 1000000.');
+          return;
+        }
+        maxUses = Math.floor(mu);
+      }
+      if (parts.length >= 4) {
+        const d = Number(parts[3]);
+        if (!Number.isFinite(d) || d < 1 || d > 3650) {
+          await sendText(chatId, 'expiresInDays must be between 1 and 3650.');
+          return;
+        }
+        expiresInDays = Math.floor(d);
+      }
+      const c = await createCoupon({
+        percentOff: percent,
+        maxUses,
+        expiresInDays: expiresInDays ?? null,
+      });
+      const exp = c.expiresAt ? `\nExpires: ${c.expiresAt.slice(0, 10)} UTC` : '';
+      await sendText(
+        chatId,
+        [
+          '✅ Coupon created',
+          `Code: ${c.code}`,
+          `Discount: ${c.percentOff}%`,
+          `Uses: ${c.usedCount}/${c.maxUses}`,
+          exp,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      );
+      return;
+    }
+
+    if (cmdToken === '/coupons') {
+      await clearPendingPaymentEdit(userId);
+      const list = await listCoupons(20);
+      if (list.length === 0) {
+        await sendText(chatId, 'No coupons yet. Use /gencoupon');
+        return;
+      }
+      const body = list
+        .map((c) => {
+          const status = c.active ? '✅' : '⛔';
+          const exp = c.expiresAt ? ` exp ${c.expiresAt.slice(0, 10)}` : '';
+          return `${status} ${c.code} ${c.percentOff}% · ${c.usedCount}/${c.maxUses}${exp}`;
+        })
+        .join('\n');
+      await sendText(chatId, body);
+      return;
+    }
+
+    if (cmdToken === '/coupon_off' || text.startsWith('/coupon_off ')) {
+      await clearPendingPaymentEdit(userId);
+      const parts = text.split(/\s+/);
+      if (parts.length < 2) {
+        await sendText(chatId, 'Usage: /coupon_off CODE');
+        return;
+      }
+      const code = normalizeCouponCode(parts.slice(1).join(' '));
+      const updated = await setCouponActive(code, false);
+      if (!updated) {
+        await sendText(chatId, 'Coupon not found.');
+        return;
+      }
+      await sendText(chatId, `Disabled: ${updated.code}`);
+      return;
+    }
+
     if (text === '/cancel') {
       await clearPendingPaymentEdit(userId);
       await sendText(chatId, 'Cancelled.');
@@ -345,7 +597,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       return;
     }
 
-    await sendText(chatId, 'Unknown command. Use /orders or /payments');
+    await sendText(chatId, 'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons');
     return;
   }
 

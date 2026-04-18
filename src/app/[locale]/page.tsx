@@ -7,7 +7,9 @@ import { Link } from "@/i18n/routing";
 import { useCart } from "@/context/CartContext";
 import { useTranslations, useLocale } from "next-intl";
 import type { StoreProduct } from "@/lib/store-product";
+import { discountBadgeVisible } from "@/lib/store-product";
 import CatalogCardImage from "@/components/ui/CatalogCardImage";
+import DiscountBadge from "@/components/ui/DiscountBadge";
 
 export default function Home() {
   const t = useTranslations("Home");
@@ -68,9 +70,9 @@ export default function Home() {
                   />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-transparent to-transparent opacity-70 transition-opacity md:opacity-0 md:group-hover:opacity-100" />
 
-                  <div className="absolute top-2 end-2 z-10 md:top-3 md:end-2 bg-brand-purple/90 text-white text-[9px] md:text-[10px] font-semibold px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg ring-1 ring-white/10" lang="en" translate="no">
-                    {game.discount}
-                  </div>
+                  {discountBadgeVisible(game.discount) && (
+                    <DiscountBadge variant="card">{game.discount}</DiscountBadge>
+                  )}
 
                   <div className="absolute inset-0 hidden md:flex items-center justify-center px-3 opacity-0 md:group-hover:opacity-100 transition-all">
                     <button

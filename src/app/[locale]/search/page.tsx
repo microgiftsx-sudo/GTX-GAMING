@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import type { StoreProduct } from '@/lib/store-product';
 import CatalogCardImage from '@/components/ui/CatalogCardImage';
+import DiscountBadge from '@/components/ui/DiscountBadge';
+import { discountBadgeVisible } from '@/lib/store-product';
 import { useCart } from '@/context/CartContext';
 import SearchSidebar from '@/components/search/SearchSidebar';
 import { Link, useRouter } from '@/i18n/routing';
@@ -288,13 +290,11 @@ export default function SearchPage() {
                       />
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-transparent to-transparent opacity-70 transition-opacity md:opacity-0 md:group-hover:opacity-100" />
 
-                      <div
-                        className="absolute top-2 end-2 z-10 bg-brand-purple/90 px-1.5 py-0.5 text-[9px] font-semibold text-white ring-1 ring-white/10 md:top-3 md:end-3 md:rounded-lg md:px-2 md:py-1 md:text-[10px] rounded-md"
-                        lang="en"
-                        translate="no"
-                      >
-                        <span dir="ltr">{product.discount}</span>
-                      </div>
+                      {discountBadgeVisible(product.discount) && (
+                        <DiscountBadge variant="card">
+                          <span dir="ltr">{product.discount}</span>
+                        </DiscountBadge>
+                      )}
 
                       <div className="absolute inset-0 hidden items-center justify-center px-3 opacity-0 transition-all md:flex md:group-hover:opacity-100">
                         <button

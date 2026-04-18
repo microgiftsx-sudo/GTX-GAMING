@@ -24,7 +24,7 @@ export default function ProductGallery({ title, galleryUrls, youtubeIds }: Props
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="relative aspect-[2/3] max-h-[min(70vh,720px)] w-full overflow-hidden rounded-2xl border border-edge bg-black/40 ring-1 ring-white/[0.04] md:rounded-3xl md:aspect-[16/10] md:max-h-[480px]">
+      <div className="relative aspect-[2/3] w-full max-h-[min(38vh,260px)] overflow-hidden rounded-2xl border border-edge bg-black/40 ring-1 ring-white/[0.04] sm:max-h-[min(48vh,380px)] md:max-h-[480px] md:rounded-3xl md:aspect-[16/10]">
         {mainSrc ? (
           <CatalogCardImage
             src={mainSrc}
@@ -48,7 +48,7 @@ export default function ProductGallery({ title, galleryUrls, youtubeIds }: Props
               type="button"
               role="listitem"
               onClick={() => setActive(i)}
-              className={`relative aspect-[2/3] h-20 w-auto shrink-0 overflow-hidden rounded-lg border-2 transition-all md:h-24 md:rounded-xl ${
+              className={`relative aspect-[2/3] h-16 w-auto shrink-0 overflow-hidden rounded-lg border-2 transition-all sm:h-20 md:h-24 md:rounded-xl ${
                 safeIndex === i
                   ? "border-brand-orange ring-2 ring-brand-orange/30"
                   : "border-edge opacity-80 hover:border-white/25 hover:opacity-100"

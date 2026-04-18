@@ -3,13 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Globe, ChevronRight, ShoppingCart } from 'lucide-react';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { useParams, notFound } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useTranslations, useLocale } from 'next-intl';
 import type { StoreProductDetail } from '@/lib/store-product';
-import { preloadImageUrls } from '@/lib/preload-images';
+import { discountBadgeVisible } from '@/lib/store-product';
 import ProductGallery from '@/components/product/ProductGallery';
+import DiscountBadge from '@/components/ui/DiscountBadge';
 import SiteLoadingScreen from '@/components/ui/SiteLoadingScreen';
 
 export default function ProductPage() {
@@ -23,9 +24,9 @@ export default function ProductPage() {
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
 
   const { addItem, formatPrice } = useCart();
+  const router = useRouter();
 
   const [product, setProduct] = useState<StoreProductDetail | null>(null);
-  const [mediaReady, setMediaReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [missing, setMissing] = useState(false);
 
@@ -35,7 +36,6 @@ export default function ProductPage() {
     setLoadError(false);
     setMissing(false);
     setProduct(null);
-    setMediaReady(false);
     fetch(`/api/products/${id}`)
       .then((r) => {
         if (r.status === 404) {
@@ -56,19 +56,6 @@ export default function ProductPage() {
     };
   }, [id]);
 
-  useEffect(() => {
-    if (!product) return;
-    let cancelled = false;
-    const urls =
-      product.galleryUrls?.length > 0 ? product.galleryUrls : [product.image];
-    preloadImageUrls(urls).then(() => {
-      if (!cancelled) setMediaReady(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [product]);
-
   if (missing) {
     notFound();
   }
@@ -88,6 +75,18 @@ export default function ProductPage() {
     });
   };
 
+  const handleBuyNow = () => {
+    if (!product) return;
+    addItem({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      image: product.image,
+      quantity: 1,
+    });
+    router.push('/checkout');
+  };
+
   if (loadError) {
     return (
       <div className="min-h-screen pb-20 flex items-center justify-center px-4 text-center text-muted text-sm">
@@ -96,10 +95,10 @@ export default function ProductPage() {
     );
   }
 
-  if (!product || !mediaReady) {
+  if (!product) {
     return (
-      <div className="flex min-h-[min(85vh,720px)] w-full items-center justify-center px-4 pb-20 pt-8">
-        <SiteLoadingScreen phase={product ? 'images' : 'default'} />
+      <div className="flex min-h-[min(50vh,480px)] w-full items-center justify-center px-4 pb-20 pt-8">
+        <SiteLoadingScreen />
       </div>
     );
   }
@@ -182,13 +181,9 @@ export default function ProductPage() {
                     >
                       {formatPrice(product.price, locale)}
                     </span>
-                    <span
-                      className="bg-brand-purple/90 text-white text-[9px] md:text-[10px] font-semibold px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg ring-1 ring-white/10"
-                      lang="en"
-                      translate="no"
-                    >
-                      {product.discount}
-                    </span>
+                    {discountBadgeVisible(product.discount) && (
+                      <DiscountBadge variant="inline">{product.discount}</DiscountBadge>
+                    )}
                   </div>
                   <div
                     className="text-[10px] md:text-[12px] text-white/20 line-through font-bold mt-1.5 md:mt-2"
@@ -209,12 +204,13 @@ export default function ProductPage() {
                   <ShoppingCart size={18} className="md:size-[20px]" />
                   {t('addToCart')}
                 </button>
-                <Link
-                  href="/checkout"
+                <button
+                  type="button"
+                  onClick={handleBuyNow}
                   className="w-full block text-center py-3.5 md:py-4 border border-edge text-muted font-semibold rounded-xl md:rounded-2xl hover:bg-white/5 hover:text-foreground transition-all text-xs md:text-sm uppercase tracking-wider outline-none"
                 >
                   {t('buyNow')}
-                </Link>
+                </button>
               </div>
             </motion.div>
 
