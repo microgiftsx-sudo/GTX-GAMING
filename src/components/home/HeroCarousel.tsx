@@ -10,8 +10,6 @@ import type { StoreProduct } from "@/lib/store-product";
 import { storefrontImageSrc } from "@/lib/storefront-image";
 import CatalogCardImage from "@/components/ui/CatalogCardImage";
 
-const HERO_LIMIT = 6;
-
 /** Strip HTML and truncate at a word boundary so we never end mid-word (e.g. “…which”). */
 function excerptDescription(raw: string | null, max = 200): string {
   if (!raw?.trim()) return "";

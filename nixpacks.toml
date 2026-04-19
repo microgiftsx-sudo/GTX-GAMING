@@ -1,0 +1,3 @@
+# Pin Node for Railway / Nixpacks. https://nixpacks.com/docs/configuration/file
+[phases.setup]
+nixPkgs = ["nodejs_20"]

@@ -29,8 +29,12 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deploy on Railway
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This app targets [Railway](https://railway.app/) with the default **Nixpacks** build (`npm run build`) and **`npm start`** (see `package.json`). [Node 20+](https://nodejs.org/) is declared in `package.json` `engines` and pinned for Nixpacks in [`nixpacks.toml`](nixpacks.toml).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Create a new project from this GitHub repo.
+2. Under **Variables**, add at least **`KINGUIN_API_KEY`** (required for the catalog). Optional Telegram variables are listed in [`.env.example`](.env.example).
+3. Deploy; Railway sets **`PORT`** automatically for `next start`.
+
+Local secrets: copy `.env.example` to `.env` (not committed).

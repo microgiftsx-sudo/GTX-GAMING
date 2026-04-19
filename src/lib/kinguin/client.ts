@@ -14,8 +14,8 @@ async function sleep(ms: number) {
 }
 
 export async function kinguinFetch<T>(path: string, init?: RequestInit & { retries?: number }): Promise<T> {
-  const retries = init?.retries ?? 4;
-  const { retries: _r, ...rest } = init ?? {};
+  const { retries: retryOverride, ...rest } = init ?? {};
+  const retries = retryOverride ?? 4;
   let lastErr: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
