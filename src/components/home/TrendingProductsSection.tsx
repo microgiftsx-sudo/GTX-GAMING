@@ -14,19 +14,26 @@ import DiscountBadge from "@/components/ui/DiscountBadge";
 const TRENDING_CARD_SIZES =
   "(max-width: 419px) 100vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 20vw";
 
-export default function TrendingProductsSection() {
+type TrendingProductsSectionProps = {
+  /** From server — same list for every visitor until cache revalidates */
+  initialItems?: StoreProduct[];
+};
+
+export default function TrendingProductsSection({ initialItems }: TrendingProductsSectionProps) {
   const t = useTranslations("Home");
   const tp = useTranslations("Product");
   const locale = useLocale();
   const { addItem, formatPrice } = useCart();
-  const [items, setItems] = useState<StoreProduct[]>([]);
+  const fromServer = initialItems !== undefined;
+  const [items, setItems] = useState<StoreProduct[]>(() => initialItems ?? []);
 
   useEffect(() => {
+    if (fromServer) return;
     fetch("/api/products?limit=10&sort=relevance")
       .then((r) => r.json())
       .then((data: { items?: StoreProduct[] }) => setItems(data.items ?? []))
       .catch(() => setItems([]));
-  }, []);
+  }, [fromServer]);
 
   return (
     <section className="relative z-[1] isolate max-w-7xl mx-auto px-3 sm:px-4 mt-12 md:mt-20 content-below-fold">

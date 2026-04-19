@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getDataRoot } from '@/lib/data-root';
 import { revalidateTag } from 'next/cache';
 import { fetchProductByKinguinId, fetchProductsPage } from '@/lib/kinguin/client';
 import { fromKinguinJson } from '@/lib/store-product';
@@ -7,7 +8,7 @@ import type { StoreProduct } from '@/lib/store-product';
 import { applyVatToStoreProduct } from '@/lib/store-product-vat';
 import { getTaxRatePercent } from '@/lib/tax';
 
-const FILE = path.join(process.cwd(), 'data', 'hero-products.json');
+const FILE = path.join(getDataRoot(), 'hero-products.json');
 
 /** Next.js Data Cache tag — call `revalidateHeroCarousel` after bot/file edits */
 export const HERO_CAROUSEL_CACHE_TAG = 'hero-carousel';

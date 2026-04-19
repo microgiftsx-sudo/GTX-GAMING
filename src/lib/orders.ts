@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getDataRoot } from '@/lib/data-root';
 
 export type PaymentMethod = {
   id: string;
@@ -52,7 +53,7 @@ export type OrderRecord = {
   couponPercentOff?: number;
 };
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+const DATA_DIR = getDataRoot();
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const METHODS_FILE = path.join(DATA_DIR, 'payment-methods.json');
 

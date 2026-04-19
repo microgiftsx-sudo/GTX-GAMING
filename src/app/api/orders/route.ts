@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import '@/lib/load-env';
+import { getReceiptsDir } from '@/lib/data-root';
 import { createOrder, listPaymentMethods, OrderItem } from '@/lib/orders';
 import {
   discountIqdFromPercent,
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Order items are required' }, { status: 400 });
     }
 
-    const ordersDir = path.join(process.cwd(), 'public', 'uploads', 'receipts');
+    const ordersDir = getReceiptsDir();
     await mkdir(ordersDir, { recursive: true });
     const safeName = sanitizeFileName(receipt.name || 'proof.png');
     const receiptFile = `${Date.now()}-${safeName}`;
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
     const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
     const proto = req.headers.get('x-forwarded-proto') ?? 'https';
     const baseUrl = host ? `${proto}://${host}` : '';
-    const receiptUrl = `${baseUrl}/uploads/receipts/${receiptFile}`;
+    const receiptUrl = `${baseUrl}/api/uploads/receipt/${receiptFile}`;
 
     const items: OrderItem[] = parsedItems.map((item) => ({
       id: String(item.id),

@@ -1,9 +1,10 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getDataRoot } from '@/lib/data-root';
 
 export { applyTaxToBaseIqd, netFromGrossIqd, taxAmountFromBase } from './tax-math';
 
-const FILE = path.join(process.cwd(), 'data', 'tax-settings.json');
+const FILE = path.join(getDataRoot(), 'tax-settings.json');
 
 type TaxSettings = { ratePercent: number };
 

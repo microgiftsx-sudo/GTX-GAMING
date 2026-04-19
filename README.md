@@ -35,6 +35,7 @@ This app targets [Railway](https://railway.app/) with the default **Nixpacks** b
 
 1. Create a new project from this GitHub repo.
 2. Under **Variables**, add at least **`KINGUIN_API_KEY`** (required for the catalog). Optional Telegram variables are listed in [`.env.example`](.env.example).
-3. Deploy; Railway sets **`PORT`** automatically for `next start`.
+3. **Persistent data (Telegram bot, orders, tax, coupons, hero IDs):** add a [Volume](https://docs.railway.com/guides/volumes) on the service, mount it (for example at `/data`), then set **`DATA_DIR=/data`** to match that mount path. Without a volume, redeploys reset filesystem state under the default `./data` folder.
+4. Deploy; Railway sets **`PORT`** automatically for `next start`.
 
 Local secrets: copy `.env.example` to `.env` (not committed).

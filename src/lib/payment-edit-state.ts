@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getDataRoot } from '@/lib/data-root';
 
 export type PaymentEditField = 'name' | 'account' | 'barcodeUrl' | 'icon';
 
@@ -9,7 +10,7 @@ export type PendingPaymentEdit = {
   expiresAt: number;
 };
 
-const FILE = path.join(process.cwd(), 'data', 'telegram-payment-edit.json');
+const FILE = path.join(getDataRoot(), 'telegram-payment-edit.json');
 const TTL_MS = 15 * 60 * 1000;
 
 type Store = Record<string, PendingPaymentEdit>;

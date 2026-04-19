@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getDataRoot } from '@/lib/data-root';
 import { discountIqdFromPercent, normalizeCouponCode } from './coupon-math';
 
 export { discountIqdFromPercent, normalizeCouponCode };
@@ -16,7 +17,7 @@ export type CouponRecord = {
   createdAt: string;
 };
 
-const FILE = path.join(process.cwd(), 'data', 'coupons.json');
+const FILE = path.join(getDataRoot(), 'coupons.json');
 
 async function readAll(): Promise<CouponRecord[]> {
   try {

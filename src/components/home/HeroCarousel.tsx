@@ -44,18 +44,25 @@ function scrollThumbCentered(
   });
 }
 
-export default function HeroCarousel() {
+type HeroCarouselProps = {
+  /** From server — same catalog for every visitor until cache revalidates */
+  initialSlides?: StoreProduct[];
+};
+
+export default function HeroCarousel({ initialSlides }: HeroCarouselProps) {
   const t = useTranslations("Product");
   const th = useTranslations("Home");
   const locale = useLocale();
   const { formatPrice } = useCart();
-  const [slides, setSlides] = useState<StoreProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const fromServer = initialSlides !== undefined;
+  const [slides, setSlides] = useState<StoreProduct[]>(() => initialSlides ?? []);
+  const [loading, setLoading] = useState(!fromServer);
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const thumbStripRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (fromServer) return;
     const ac = new AbortController();
     setLoading(true);
     fetch(`/api/products/hero`, {
@@ -73,7 +80,7 @@ export default function HeroCarousel() {
         if (!ac.signal.aborted) setLoading(false);
       });
     return () => ac.abort();
-  }, []);
+  }, [fromServer]);
 
   const n = slides.length;
   const current = n > 0 ? slides[Math.min(activeIndex, n - 1)] : null;
