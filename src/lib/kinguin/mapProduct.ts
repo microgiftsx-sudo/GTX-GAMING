@@ -25,20 +25,13 @@ function pickImageUrl(p: KinguinProductJson): string | null {
   return shot?.url ?? shot?.thumbnail ?? null;
 }
 
-function maxOfferPrice(p: KinguinProductJson): number | null {
-  const prices = (p.offers ?? []).map((o) => o.price).filter((n) => Number.isFinite(n));
-  if (prices.length === 0) return null;
-  const m = Math.max(...prices);
-  const cheapest = p.price;
-  return m > cheapest ? m : null;
-}
-
 /** Normalized fields from Kinguin API JSON (EUR prices, slugs, image URL). */
 export function mapKinguinJson(p: KinguinProductJson) {
   const imageUrl = pickImageUrl(p);
   const tags = p.tags ?? [];
   const genres = p.genres ?? [];
-  const original = maxOfferPrice(p);
+  /** Do not derive “original” list price from other merchants’ offers — main `price` only. */
+  const original: number | null = null;
 
   let updatedAt: Date | null = null;
   if (p.updatedAt) {
