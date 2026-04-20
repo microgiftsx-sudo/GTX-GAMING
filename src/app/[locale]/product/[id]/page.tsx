@@ -461,13 +461,17 @@ export default function ProductPage() {
                       <DiscountBadge variant="inline">{product.discount}</DiscountBadge>
                     )}
                   </div>
-                  <div
-                    className="text-[10px] md:text-[12px] text-white/20 line-through font-bold mt-1.5 md:mt-2"
-                    lang="en"
-                    translate="no"
-                  >
-                    {!showVariantUi ? formatPrice(product.originalPrice, locale) : '\u00a0'}
-                  </div>
+                  {!showVariantUi ? (
+                    <div
+                      className="text-[10px] md:text-[12px] text-white/20 line-through font-bold mt-1.5 md:mt-2"
+                      lang="en"
+                      translate="no"
+                    >
+                      {formatPrice(product.originalPrice, locale)}
+                    </div>
+                  ) : (
+                    <div className="mt-1.5 md:mt-2 min-h-[1em]" aria-hidden />
+                  )}
                 </div>
               </div>
 

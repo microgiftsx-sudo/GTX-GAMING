@@ -12,12 +12,10 @@ export const dynamic = 'force-dynamic';
 
 type SelectionBody = { optionId: number; valueId: number };
 
-function saneEur(calcEur: number, dataEur: number, collection: string): number {
-  if (!Number.isFinite(dataEur) || dataEur <= 0) return calcEur;
-  if (collection === 'unit') return dataEur;
-  if (calcEur <= 0) return dataEur;
-  if (calcEur < dataEur * 0.15 || calcEur > dataEur * 25 + 100) return dataEur;
-  return calcEur;
+/** Prefer live calc when Digiseller returns a positive EUR; fall back to listing only if calc is invalid. */
+function saneEur(calcEur: number, dataEur: number): number {
+  if (Number.isFinite(calcEur) && calcEur > 0) return calcEur;
+  return Number.isFinite(dataEur) && dataEur > 0 ? dataEur : calcEur;
 }
 
 export async function POST(
@@ -51,17 +49,17 @@ export async function POST(
     const merged = mergePlatiSelectionsForCalc(product, selections);
     const dataEur =
       typeof product.price === 'number' && Number.isFinite(product.price) ? product.price : 0;
-    const collection = String(product.collection ?? '');
+    const collection = String(product.collection ?? '').toLowerCase();
 
     const calc = await digisellerCalcPriceEur({
       productId: kid,
       selections: merged,
-      count: 1,
+      ...(collection === 'unit' ? { unitCnt: 1 } : { count: 1 }),
     });
 
     let eur = dataEur;
     if (calc.ok) {
-      eur = saneEur(calc.eur, dataEur, collection);
+      eur = saneEur(calc.eur, dataEur);
     }
 
     const taxRate = await getTaxRatePercent();
