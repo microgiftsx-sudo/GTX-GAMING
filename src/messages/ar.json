@@ -243,6 +243,9 @@
     "global": "عالمي",
     "applyFilters": "تطبيق الفلاتر",
     "closeFilters": "إغلاق",
-    "all": "الكل"
+    "all": "الكل",
+    "loadMore": "عرض المزيد",
+    "loadingMore": "جاري التحميل…",
+    "showingLoaded": "عرض {loaded} من أصل {total} نتيجة"
   }
 }

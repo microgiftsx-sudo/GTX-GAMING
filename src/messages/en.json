@@ -243,6 +243,9 @@
     "global": "Global",
     "applyFilters": "Apply filters",
     "closeFilters": "Close",
-    "all": "All"
+    "all": "All",
+    "loadMore": "Show more",
+    "loadingMore": "Loading…",
+    "showingLoaded": "Showing {loaded} of {total} results"
   }
 }

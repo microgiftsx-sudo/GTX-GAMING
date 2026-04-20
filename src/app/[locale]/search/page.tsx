@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import type { StoreProduct } from '@/lib/store-product';
@@ -12,9 +12,48 @@ import SearchSidebar from '@/components/search/SearchSidebar';
 import { Link } from '@/i18n/routing';
 import { ChevronDown, Filter, LayoutGrid, Search as SearchIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { sortCatalogItems } from '@/lib/catalog-search-rank';
 
 /** Search grid: 2 cols default, 3 from xl */
 const SEARCH_CARD_SIZES = '(max-width: 1279px) 50vw, 33vw';
+
+const PAGE_SIZE = 36;
+
+function mergeDedupeProducts(existing: StoreProduct[], incoming: StoreProduct[]): StoreProduct[] {
+  const seen = new Set(existing.map((p) => p.id));
+  const out = [...existing];
+  for (const p of incoming) {
+    if (!seen.has(p.id)) {
+      seen.add(p.id);
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+function buildProductListingQuery(opts: {
+  q: string;
+  categories: string[];
+  platforms: string[];
+  minPrice: number;
+  maxPrice: number;
+  sort: string;
+  page: number;
+  limit: number;
+}): string {
+  const sp = new URLSearchParams();
+  if (opts.q.trim()) sp.set('q', opts.q.trim());
+  if (opts.categories.length) sp.set('category', opts.categories.join(','));
+  if (opts.platforms.length) sp.set('platform', opts.platforms.join(','));
+  if (opts.minPrice > 0) sp.set('minPrice', String(opts.minPrice));
+  if (Number.isFinite(opts.maxPrice) && opts.maxPrice < Number.MAX_SAFE_INTEGER / 4) {
+    sp.set('maxPrice', String(opts.maxPrice));
+  }
+  sp.set('sort', opts.sort);
+  sp.set('limit', String(opts.limit));
+  sp.set('page', String(opts.page));
+  return sp.toString();
+}
 
 export default function SearchPage() {
   const t = useTranslations('Search');
@@ -29,6 +68,10 @@ export default function SearchPage() {
   const [items, setItems] = useState<StoreProduct[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const itemsRef = useRef<StoreProduct[]>([]);
+  const totalRef = useRef(0);
 
   const query = searchParams.get('q') || '';
   /** Stable strings — avoid new [] each render (was retriggering fetch every paint and aborting requests). */
@@ -49,37 +92,71 @@ export default function SearchPage() {
   const minPrice = Number(minPriceParam) || 0;
   const maxPrice = Number(maxPriceParam) || Infinity;
 
+  const sortKey =
+    sortBy === 'price-low'
+      ? 'price-low'
+      : sortBy === 'price-high'
+        ? 'price-high'
+        : 'relevance';
+
+  const listingDepsKey = useMemo(
+    () =>
+      JSON.stringify({
+        query,
+        categories,
+        platforms,
+        minPrice,
+        maxPrice,
+        sortKey,
+      }),
+    [query, categories, platforms, minPrice, maxPrice, sortKey],
+  );
+
+  const listingKeyRef = useRef('');
+
+  itemsRef.current = items;
+  totalRef.current = total;
+
   useEffect(() => {
+    const myKey = listingDepsKey;
+    listingKeyRef.current = listingDepsKey;
     const ac = new AbortController();
-    const sp = new URLSearchParams();
-    if (query.trim()) sp.set('q', query.trim());
-    if (categories.length) sp.set('category', categories.join(','));
-    if (platforms.length) sp.set('platform', platforms.join(','));
-    if (minPrice > 0) sp.set('minPrice', String(minPrice));
-    if (Number.isFinite(maxPrice) && maxPrice < Number.MAX_SAFE_INTEGER / 4) {
-      sp.set('maxPrice', String(maxPrice));
-    }
-    const sort =
-      sortBy === 'price-low'
-        ? 'price-low'
-        : sortBy === 'price-high'
-          ? 'price-high'
-          : 'relevance';
-    sp.set('sort', sort);
-    sp.set('limit', '48');
-    sp.set('page', '1');
+    const qs = buildProductListingQuery({
+      q: query,
+      categories,
+      platforms,
+      minPrice,
+      maxPrice,
+      sort: sortKey,
+      page: 1,
+      limit: PAGE_SIZE,
+    });
 
     setLoading(true);
-    fetch(`/api/products?${sp.toString()}`, { signal: ac.signal })
+    setHasMore(false);
+    fetch(`/api/products?${qs}`, { signal: ac.signal })
       .then((r) => r.json())
       .then((data: { items?: StoreProduct[]; total?: number }) => {
-        setItems(data.items ?? []);
-        setTotal(typeof data.total === 'number' ? data.total : 0);
+        if (listingKeyRef.current !== myKey) return;
+        const batch = data.items ?? [];
+        const nextTotal = typeof data.total === 'number' ? data.total : 0;
+        const sorted = sortCatalogItems(batch, sortKey, query.trim());
+        setItems(sorted);
+        itemsRef.current = sorted;
+        setTotal(nextTotal);
+        totalRef.current = nextTotal;
+        setHasMore(
+          batch.length === PAGE_SIZE && sorted.length < nextTotal,
+        );
       })
       .catch(() => {
         if (!ac.signal.aborted) {
+          if (listingKeyRef.current !== myKey) return;
           setItems([]);
+          itemsRef.current = [];
           setTotal(0);
+          totalRef.current = 0;
+          setHasMore(false);
         }
       })
       .finally(() => {
@@ -87,7 +164,53 @@ export default function SearchPage() {
       });
 
     return () => ac.abort();
-  }, [query, categories, platforms, minPrice, maxPrice, sortBy]);
+  }, [listingDepsKey, query, sortKey]);
+
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) return;
+    const myKey = listingKeyRef.current;
+    const prev = itemsRef.current;
+    const nextPage = Math.floor(prev.length / PAGE_SIZE) + 1;
+    const qs = buildProductListingQuery({
+      q: query,
+      categories,
+      platforms,
+      minPrice,
+      maxPrice,
+      sort: sortKey,
+      page: nextPage,
+      limit: PAGE_SIZE,
+    });
+
+    setLoadingMore(true);
+    try {
+      const r = await fetch(`/api/products?${qs}`);
+      const data: { items?: StoreProduct[]; total?: number } = await r.json();
+      if (listingKeyRef.current !== myKey) return;
+      const batch = data.items ?? [];
+      if (typeof data.total === 'number') {
+        setTotal(data.total);
+        totalRef.current = data.total;
+      }
+      const merged = sortCatalogItems(
+        mergeDedupeProducts(prev, batch),
+        sortKey,
+        query.trim(),
+      );
+      setItems(merged);
+      itemsRef.current = merged;
+      setHasMore(
+        batch.length === PAGE_SIZE && merged.length < totalRef.current,
+      );
+    } catch {
+      // ignore
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [listingDepsKey, query, sortKey, loading, loadingMore, hasMore]);
+
+  const countFmt = (n: number) =>
+    n.toLocaleString('en-US', { numberingSystem: 'latn' });
 
   return (
     <div className="min-h-screen pb-20">
@@ -109,17 +232,35 @@ export default function SearchPage() {
                   <span className="text-brand-orange">{t('allProducts')}</span>
                 )}
               </h1>
-              <p className="hidden md:flex text-xs font-medium uppercase tracking-wider text-muted items-center gap-3 mt-1">
-                <LayoutGrid size={14} className="text-brand-orange shrink-0" />
-                {t('resultsFound', { count: total.toLocaleString('en-US', { numberingSystem: 'latn' }) })}
-              </p>
+              <div className="mt-1 hidden md:flex flex-col gap-1 text-xs font-medium uppercase tracking-wider text-muted">
+                <p className="flex items-center gap-3">
+                  <LayoutGrid size={14} className="text-brand-orange shrink-0" />
+                  {t('resultsFound', { count: countFmt(total) })}
+                </p>
+                {!loading && total > 0 && items.length > 0 && (
+                  <p className="ps-7 text-[10px] font-semibold normal-case tracking-normal text-faint">
+                    {t('showingLoaded', {
+                      loaded: countFmt(items.length),
+                      total: countFmt(total),
+                    })}
+                  </p>
+                )}
+              </div>
 
               {/* Mobile: compact toolbar (results + filter + sort); category pills hidden — use sidebar filters */}
               <div className="mt-4 space-y-3 md:hidden">
                 <div className="flex items-stretch gap-2">
-                  <p className="flex-1 min-w-0 self-center text-[11px] font-semibold uppercase tracking-wider text-muted leading-tight">
-                    {t('resultsFound', { count: total.toLocaleString('en-US', { numberingSystem: 'latn' }) })}
-                  </p>
+                  <div className="flex-1 min-w-0 self-center text-[11px] font-semibold uppercase tracking-wider text-muted leading-tight">
+                    <p>{t('resultsFound', { count: countFmt(total) })}</p>
+                    {!loading && total > 0 && items.length > 0 && (
+                      <p className="mt-0.5 text-[10px] font-medium normal-case tracking-normal text-faint">
+                        {t('showingLoaded', {
+                          loaded: countFmt(items.length),
+                          total: countFmt(total),
+                        })}
+                      </p>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => setShowMobileFilters(true)}
@@ -210,13 +351,14 @@ export default function SearchPage() {
           {loading ? (
             <div className="py-24 text-center text-muted text-sm animate-pulse">…</div>
           ) : items.length > 0 ? (
+            <>
             <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-6 xl:grid-cols-3 md:gap-8 content-below-fold">
               {items.map((product, index) => (
                 <motion.div 
                   layout
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  key={product.id} 
+                  key={product.id}
                   className="group flex min-h-0 flex-col"
                 >
                   <div className="mb-2 shrink-0 overflow-hidden rounded-xl border border-edge bg-surface-elevated shadow-lg shadow-black/30 ring-1 ring-white/[0.04] md:mb-3 md:rounded-2xl">
@@ -301,6 +443,19 @@ export default function SearchPage() {
                 </motion.div>
               ))}
             </div>
+            {hasMore && (
+              <div className="mt-10 flex flex-col items-center gap-2 pb-4">
+                <button
+                  type="button"
+                  onClick={() => void loadMore()}
+                  disabled={loadingMore}
+                  className="min-h-12 w-full max-w-sm rounded-2xl border border-edge bg-surface-elevated px-6 py-3 text-xs font-semibold uppercase tracking-wider text-foreground shadow-md transition-colors hover:border-brand-orange/40 hover:text-brand-orange disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation"
+                >
+                  {loadingMore ? t('loadingMore') : t('loadMore')}
+                </button>
+              </div>
+            )}
+            </>
           ) : (
             <motion.div 
                initial={{ opacity: 0 }}
