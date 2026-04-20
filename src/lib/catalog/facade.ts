@@ -8,6 +8,7 @@ import {
   storeProductDetailFromDigisellerJson,
 } from '@/lib/plati/mapStoreProduct';
 import { extractGalleryUrls, extractYoutubeIds } from '@/lib/kinguin/media';
+import { kinguinPriceVariantsFromJson } from '@/lib/kinguin/priceVariants';
 import type { CachedProductsArgs } from '@/lib/catalog-search-args';
 import { netFromGrossIqd } from '@/lib/tax';
 
@@ -114,10 +115,13 @@ export async function getCatalogProductDetailUncached(
     const json = await fetchProductByKinguinId(id);
     const base = fromKinguinJson(json);
     const g = extractGalleryUrls(json);
+    const variants = kinguinPriceVariantsFromJson(json);
     return {
       ...base,
       galleryUrls: g.length > 0 ? g : [base.image],
       youtubeIds: extractYoutubeIds(json),
+      catalogSource: 'kinguin',
+      kinguinPriceVariants: variants,
     };
   }
 

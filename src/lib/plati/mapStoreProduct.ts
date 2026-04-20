@@ -2,6 +2,7 @@ import { eurToIqd } from '@/lib/currency';
 import type { StoreProduct, StoreProductDetail } from '@/lib/store-product';
 import { normalizePlatformSlug, deriveCategorySlug } from '@/lib/kinguin/mapProduct';
 import type { PlatiSearchItem } from '@/lib/plati/client';
+import { extractPlatiPurchaseMeta } from '@/lib/plati/productOptions';
 
 const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&w=600&q=60';
@@ -151,9 +152,15 @@ export function storeProductDetailFromDigisellerJson(
   const galleryUrls = galleryFromDigisellerProduct(product);
   const youtubeIds = youtubeIdsFromDigisellerProduct(product);
 
+  const platiMeta = extractPlatiPurchaseMeta(product);
+
   return {
     ...base,
     galleryUrls: galleryUrls.length > 0 ? galleryUrls : [base.image],
     youtubeIds,
+    catalogSource: 'plati',
+    platiOptionGroups: platiMeta.groups.length > 0 ? platiMeta.groups : undefined,
+    platiSelections: platiMeta.allSelections.length > 0 ? platiMeta.allSelections : undefined,
+    platiCollection: platiMeta.collection || undefined,
   };
 }

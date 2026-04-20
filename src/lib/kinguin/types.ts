@@ -14,7 +14,7 @@ export interface KinguinProductJson {
   description?: string;
   platform?: string;
   price: number;
-  offers?: { price: number }[];
+  offers?: { price: number; name?: string; merchantName?: string }[];
   offersCount?: number;
   tags?: string[];
   genres?: string[];

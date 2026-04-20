@@ -40,6 +40,15 @@ export async function GET(
       galleryUrls:
         detail.galleryUrls.length > 0 ? detail.galleryUrls : [base.image],
       youtubeIds: detail.youtubeIds,
+      catalogSource: detail.catalogSource,
+      platiOptionGroups: detail.platiOptionGroups,
+      platiSelections: detail.platiSelections,
+      platiCollection: detail.platiCollection,
+      kinguinPriceVariants: detail.kinguinPriceVariants?.map((v) => ({
+        id: v.id,
+        label: v.label,
+        priceEur: v.priceEur,
+      })),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

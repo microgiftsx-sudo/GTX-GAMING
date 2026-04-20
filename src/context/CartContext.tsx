@@ -13,6 +13,8 @@ export interface CartItem {
   price: number; // Base price in IQD
   image: string;
   quantity: number;
+  /** When set, merges lines with the same key instead of the same `id`. */
+  cartKey?: string;
 }
 
 interface CartContextType {
@@ -139,27 +141,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearAppliedCoupon = () => setAppliedCoupon(null);
 
+  const lineKey = (i: CartItem) => i.cartKey ?? String(i.id);
+
   const addItem = (item: CartItem) => {
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+      const key = lineKey(item);
+      const existing = prev.find((i) => lineKey(i) === key);
       if (existing) {
-        return prev.map((i) => 
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-        );
+        return prev.map((i) => (lineKey(i) === key ? { ...i, quantity: i.quantity + 1 } : i));
       }
       return [...prev, { ...item, quantity: 1 }];
     });
   };
 
-  const removeItem = (id: string | number) => {
-    setCart((prev) => prev.filter((i) => i.id !== id));
+  const removeItem = (lineId: string | number) => {
+    const s = String(lineId);
+    setCart((prev) => prev.filter((i) => lineKey(i) !== s));
   };
 
-  const updateQuantity = (id: string | number, quantity: number) => {
+  const updateQuantity = (lineId: string | number, quantity: number) => {
     if (quantity < 1) return;
-    setCart((prev) => prev.map((item) => 
-      item.id === id ? { ...item, quantity } : item
-    ));
+    const s = String(lineId);
+    setCart((prev) =>
+      prev.map((item) => (lineKey(item) === s ? { ...item, quantity } : item)),
+    );
   };
 
   const clearCart = () => {

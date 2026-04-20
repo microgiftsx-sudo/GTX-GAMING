@@ -19,10 +19,39 @@ export type StoreProduct = {
   description: string | null;
 };
 
+export type ProductOptionChoice = {
+  valueId: number;
+  label: string;
+};
+
+export type ProductOptionGroup = {
+  optionId: number;
+  label: string;
+  type: 'radio' | 'select';
+  required: boolean;
+  choices: ProductOptionChoice[];
+};
+
+export type KinguinPriceVariant = {
+  id: string;
+  label: string;
+  /** EUR list price (same basis as Kinguin `price` on the product). */
+  priceEur: number;
+};
+
 /** From `GET /api/products/[id]` — includes Kinguin gallery + YouTube ids. */
 export type StoreProductDetail = StoreProduct & {
   galleryUrls: string[];
   youtubeIds: string[];
+  catalogSource?: 'kinguin' | 'plati';
+  /** Digiseller: radio/select groups with 2+ choices (shown on product page). */
+  platiOptionGroups?: ProductOptionGroup[];
+  /** Digiseller: merged selections for price/calc (every option row). */
+  platiSelections?: { optionId: number; valueId: number }[];
+  /** Digiseller `collection` — used to decide when price/calc is reliable. */
+  platiCollection?: string;
+  /** Kinguin: distinct offer prices when the API exposes multiple offers. */
+  kinguinPriceVariants?: KinguinPriceVariant[];
 };
 
 function discountLabel(priceEur: number, originalEur: number | null | undefined): string {

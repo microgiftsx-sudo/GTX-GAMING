@@ -66,7 +66,7 @@ export default function CartPage() {
           <AnimatePresence mode="popLayout">
             {cart.map((item) => (
               <motion.div 
-                key={item.id}
+                key={item.cartKey ?? String(item.id)}
                 layout
                 initial={{ opacity: 0, x: isRtl ? 20 : -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -84,7 +84,7 @@ export default function CartPage() {
                   <div className="mt-6 flex items-center gap-4">
                     <div className="flex items-center bg-surface border border-edge rounded-xl overflow-hidden">
                       <button 
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.cartKey ?? item.id, item.quantity - 1)}
                         className="p-2 hover:bg-white/5 text-white/40 hover:text-white transition-colors outline-none"
                       >
                         <Minus size={14} />
@@ -93,7 +93,7 @@ export default function CartPage() {
                         {item.quantity.toLocaleString('en-US', { numberingSystem: 'latn' })}
                       </span>
                       <button 
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.cartKey ?? item.id, item.quantity + 1)}
                         className="p-2 hover:bg-white/5 text-white/40 hover:text-white transition-colors outline-none"
                       >
                         <Plus size={14} />
@@ -104,7 +104,7 @@ export default function CartPage() {
                 </div>
                 
                 <button 
-                  onClick={() => removeItem(item.id)}
+                  onClick={() => removeItem(item.cartKey ?? item.id)}
                   className="p-4 rounded-2xl bg-white/5 text-white/20 hover:bg-red-500/10 hover:text-red-500 transition-all outline-none"
                 >
                   <Trash2 size={20} />

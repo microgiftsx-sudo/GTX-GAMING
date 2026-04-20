@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Globe, ChevronRight, ShoppingCart } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/routing';
@@ -9,11 +9,56 @@ import { useCart } from '@/context/CartContext';
 import { useTranslations, useLocale } from 'next-intl';
 import type { StoreProductDetail } from '@/lib/store-product';
 import { discountBadgeVisible } from '@/lib/store-product';
+import { eurToIqd } from '@/lib/currency';
+import { applyTaxToBaseIqd } from '@/lib/tax-math';
 import ProductGallery from '@/components/product/ProductGallery';
 import DiscountBadge from '@/components/ui/DiscountBadge';
 import SiteLoadingScreen from '@/components/ui/SiteLoadingScreen';
 import LazyWhenVisible from '@/components/ui/LazyWhenVisible';
 import ProductRelatedSection from '@/components/product/ProductRelatedSection';
+
+type KinguinVariantDto = { id: string; label: string; priceEur: number };
+
+type ProductApiDetail = StoreProductDetail & {
+  catalogSource?: 'kinguin' | 'plati';
+  platiOptionGroups?: StoreProductDetail['platiOptionGroups'];
+  platiSelections?: { optionId: number; valueId: number }[];
+  kinguinPriceVariants?: KinguinVariantDto[];
+};
+
+function platiSelectionsToRecord(
+  rows: { optionId: number; valueId: number }[] | undefined,
+): Record<number, number> {
+  const m: Record<number, number> = {};
+  if (!rows) return m;
+  for (const r of rows) m[r.optionId] = r.valueId;
+  return m;
+}
+
+function recordToSelectionBody(sel: Record<number, number>): { optionId: number; valueId: number }[] {
+  return Object.entries(sel).map(([k, v]) => ({ optionId: Number(k), valueId: v }));
+}
+
+function platiVariantLabel(
+  groups: NonNullable<ProductApiDetail['platiOptionGroups']>,
+  sel: Record<number, number>,
+): string | undefined {
+  const parts: string[] = [];
+  for (const g of groups) {
+    const vid = sel[g.optionId];
+    const c = g.choices.find((x) => x.valueId === vid);
+    if (c) parts.push(c.label);
+  }
+  return parts.length ? parts.join(' · ') : undefined;
+}
+
+function buildPlatiCartKey(productId: string, sel: Record<number, number>): string {
+  const body = recordToSelectionBody(sel)
+    .sort((a, b) => a.optionId - b.optionId)
+    .map((x) => `${x.optionId}:${x.valueId}`)
+    .join('|');
+  return `plati:${productId}:${body}`;
+}
 
 export default function ProductPage() {
   const t = useTranslations('Product');
@@ -25,12 +70,17 @@ export default function ProductPage() {
   const rawId = params?.id;
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
 
-  const { addItem, formatPrice } = useCart();
+  const { addItem, formatPrice, taxRatePercent } = useCart();
   const router = useRouter();
 
-  const [product, setProduct] = useState<StoreProductDetail | null>(null);
+  const [product, setProduct] = useState<ProductApiDetail | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [missing, setMissing] = useState(false);
+  const [platiSel, setPlatiSel] = useState<Record<number, number>>({});
+  const [kinguinVarId, setKinguinVarId] = useState<string | null>(null);
+  const [livePlatiGross, setLivePlatiGross] = useState<number | null>(null);
+  const [priceBusy, setPriceBusy] = useState(false);
+  const calcAbort = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -38,6 +88,9 @@ export default function ProductPage() {
     setLoadError(false);
     setMissing(false);
     setProduct(null);
+    setPlatiSel({});
+    setKinguinVarId(null);
+    setLivePlatiGross(null);
     fetch(`/api/products/${id}`)
       .then((r) => {
         if (r.status === 404) {
@@ -45,10 +98,17 @@ export default function ProductPage() {
           return null;
         }
         if (!r.ok) throw new Error('load');
-        return r.json() as Promise<StoreProductDetail>;
+        return r.json() as Promise<ProductApiDetail>;
       })
       .then((p) => {
-        if (!cancelled && p) setProduct(p);
+        if (cancelled || !p) return;
+        setProduct(p);
+        if (p.catalogSource === 'plati' && p.platiSelections?.length) {
+          setPlatiSel(platiSelectionsToRecord(p.platiSelections));
+        }
+        if (p.catalogSource === 'kinguin' && p.kinguinPriceVariants?.length) {
+          setKinguinVarId(p.kinguinPriceVariants[0]!.id);
+        }
       })
       .catch(() => {
         if (!cancelled) setLoadError(true);
@@ -57,6 +117,89 @@ export default function ProductPage() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!product || product.catalogSource !== 'plati') return;
+    if (!product.platiOptionGroups?.length) {
+      setLivePlatiGross(null);
+      return;
+    }
+    const keys = Object.keys(platiSel);
+    if (keys.length === 0) return;
+
+    calcAbort.current?.abort();
+    const ac = new AbortController();
+    calcAbort.current = ac;
+    setPriceBusy(true);
+
+    const tmr = window.setTimeout(() => {
+      fetch(`/api/products/${id}/calc-price`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ selections: recordToSelectionBody(platiSel) }),
+        signal: ac.signal,
+      })
+        .then(async (r) => {
+          if (!r.ok) throw new Error('calc');
+          return r.json() as Promise<{ price?: number }>;
+        })
+        .then((j) => {
+          if (ac.signal.aborted) return;
+          if (typeof j.price === 'number' && Number.isFinite(j.price)) {
+            setLivePlatiGross(j.price);
+          }
+        })
+        .catch(() => {
+          if (!ac.signal.aborted) setLivePlatiGross(null);
+        })
+        .finally(() => {
+          if (!ac.signal.aborted) setPriceBusy(false);
+        });
+    }, 180);
+
+    return () => {
+      window.clearTimeout(tmr);
+      ac.abort();
+    };
+  }, [product, platiSel, id]);
+
+  const effectiveGrossPrice = useMemo(() => {
+    if (!product) return 0;
+    if (product.catalogSource === 'plati' && livePlatiGross != null) return livePlatiGross;
+    if (product.catalogSource === 'kinguin' && product.kinguinPriceVariants?.length && kinguinVarId) {
+      const v = product.kinguinPriceVariants.find((x) => x.id === kinguinVarId);
+      if (v) return applyTaxToBaseIqd(Math.round(eurToIqd(v.priceEur)), taxRatePercent);
+    }
+    return product.price;
+  }, [product, livePlatiGross, kinguinVarId, taxRatePercent]);
+
+  const variantLabelForCart = useCallback((): string | undefined => {
+    if (!product) return undefined;
+    if (product.catalogSource === 'plati' && product.platiOptionGroups?.length) {
+      return platiVariantLabel(product.platiOptionGroups, platiSel);
+    }
+    if (product.catalogSource === 'kinguin' && product.kinguinPriceVariants?.length && kinguinVarId) {
+      return product.kinguinPriceVariants.find((x) => x.id === kinguinVarId)?.label;
+    }
+    return undefined;
+  }, [product, platiSel, kinguinVarId]);
+
+  const cartTitle = useCallback(() => {
+    if (!product) return '';
+    const v = variantLabelForCart();
+    return v ? `${product.title} — ${v}` : product.title;
+  }, [product, variantLabelForCart]);
+
+  const cartKeyForLine = useCallback(() => {
+    if (!product) return '';
+    if (product.catalogSource === 'plati' && product.platiOptionGroups?.length) {
+      return buildPlatiCartKey(product.id, platiSel);
+    }
+    if (product.catalogSource === 'kinguin' && kinguinVarId) {
+      return `kinguin:${product.id}:${kinguinVarId}`;
+    }
+    return String(product.id);
+  }, [product, platiSel, kinguinVarId]);
 
   if (missing) {
     notFound();
@@ -70,8 +213,9 @@ export default function ProductPage() {
     if (!product) return;
     addItem({
       id: product.id,
-      title: product.title,
-      price: product.price,
+      cartKey: cartKeyForLine(),
+      title: cartTitle(),
+      price: effectiveGrossPrice,
       image: product.image,
       quantity: 1,
     });
@@ -81,8 +225,9 @@ export default function ProductPage() {
     if (!product) return;
     addItem({
       id: product.id,
-      title: product.title,
-      price: product.price,
+      cartKey: cartKeyForLine(),
+      title: cartTitle(),
+      price: effectiveGrossPrice,
       image: product.image,
       quantity: 1,
     });
@@ -107,6 +252,9 @@ export default function ProductPage() {
 
   const platformName = getPlatformName(product.platform);
   const description = product.description?.trim() || '';
+  const showVariantUi =
+    (product.platiOptionGroups && product.platiOptionGroups.length > 0) ||
+    (product.kinguinPriceVariants && product.kinguinPriceVariants.length > 1);
 
   return (
     <div className="min-h-screen pb-20">
@@ -171,6 +319,68 @@ export default function ProductPage() {
                 </div>
               </div>
 
+              {showVariantUi && (
+                <div className="mb-6 md:mb-8 space-y-5">
+                  {product.platiOptionGroups?.map((group) => (
+                    <div key={group.optionId} className="space-y-2">
+                      <p className="text-[10px] md:text-xs font-semibold text-muted uppercase tracking-wider">
+                        {group.label}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {group.choices.map((c) => {
+                          const active = platiSel[group.optionId] === c.valueId;
+                          return (
+                            <button
+                              key={c.valueId}
+                              type="button"
+                              onClick={() =>
+                                setPlatiSel((prev) => ({ ...prev, [group.optionId]: c.valueId }))
+                              }
+                              className={`rounded-xl border px-3 py-2 text-left text-[11px] md:text-xs font-medium transition-colors outline-none max-w-full ${
+                                active
+                                  ? 'border-brand-orange bg-brand-orange/10 text-foreground'
+                                  : 'border-edge text-muted hover:border-white/20 hover:text-foreground'
+                              }`}
+                            >
+                              {c.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  {product.kinguinPriceVariants && product.kinguinPriceVariants.length > 1 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] md:text-xs font-semibold text-muted uppercase tracking-wider">
+                        {t('priceOption')}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {product.kinguinPriceVariants.map((c) => {
+                          const active = kinguinVarId === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => setKinguinVarId(c.id)}
+                              className={`rounded-xl border px-3 py-2 text-left text-[11px] md:text-xs font-medium transition-colors outline-none max-w-full ${
+                                active
+                                  ? 'border-brand-orange bg-brand-orange/10 text-foreground'
+                                  : 'border-edge text-muted hover:border-white/20 hover:text-foreground'
+                              }`}
+                            >
+                              {c.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {product.catalogSource === 'plati' && priceBusy && (
+                    <p className="text-[10px] text-muted">{t('priceUpdating')}</p>
+                  )}
+                </div>
+              )}
+
               <hr className="border-edge mb-6 md:mb-8" />
 
               <div className="flex items-end justify-between mb-6 md:mb-8">
@@ -181,9 +391,9 @@ export default function ProductPage() {
                       lang="en"
                       translate="no"
                     >
-                      {formatPrice(product.price, locale)}
+                      {formatPrice(effectiveGrossPrice, locale)}
                     </span>
-                    {discountBadgeVisible(product.discount) && (
+                    {!showVariantUi && discountBadgeVisible(product.discount) && (
                       <DiscountBadge variant="inline">{product.discount}</DiscountBadge>
                     )}
                   </div>
@@ -192,7 +402,7 @@ export default function ProductPage() {
                     lang="en"
                     translate="no"
                   >
-                    {formatPrice(product.originalPrice, locale)}
+                    {!showVariantUi ? formatPrice(product.originalPrice, locale) : '\u00a0'}
                   </div>
                 </div>
               </div>
