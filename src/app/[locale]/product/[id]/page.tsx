@@ -60,6 +60,29 @@ function buildPlatiCartKey(productId: string, sel: Record<number, number>): stri
   return `plati:${productId}:${body}`;
 }
 
+function sortedSelectionBody(sel: Record<number, number>): { optionId: number; valueId: number }[] {
+  return [...recordToSelectionBody(sel)].sort((a, b) => a.optionId - b.optionId);
+}
+
+function platiPriceCacheKey(sel: Record<number, number>): string {
+  return JSON.stringify(sortedSelectionBody(sel));
+}
+
+/** Cartesian product: each inner array is one dimension. */
+function cartesianPickLists<T>(lists: T[][]): T[][] {
+  if (lists.length === 0) return [[]];
+  const [first, ...rest] = lists;
+  const tail = cartesianPickLists(rest);
+  const out: T[][] = [];
+  for (const x of first) {
+    for (const row of tail) out.push([x, ...row]);
+  }
+  return out;
+}
+
+const MAX_PLATI_PREFETCH_COMBOS = 96;
+const PLATI_PREFETCH_CONCURRENCY = 8;
+
 export default function ProductPage() {
   const t = useTranslations('Product');
   const d = useTranslations('Data');
@@ -78,9 +101,8 @@ export default function ProductPage() {
   const [missing, setMissing] = useState(false);
   const [platiSel, setPlatiSel] = useState<Record<number, number>>({});
   const [kinguinVarId, setKinguinVarId] = useState<string | null>(null);
-  const [livePlatiGross, setLivePlatiGross] = useState<number | null>(null);
-  const [priceBusy, setPriceBusy] = useState(false);
-  const calcAbort = useRef<AbortController | null>(null);
+  const [prefetchTick, setPrefetchTick] = useState(0);
+  const priceCacheRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!id) return;
@@ -90,7 +112,8 @@ export default function ProductPage() {
     setProduct(null);
     setPlatiSel({});
     setKinguinVarId(null);
-    setLivePlatiGross(null);
+    priceCacheRef.current.clear();
+    setPrefetchTick(0);
     fetch(`/api/products/${id}`)
       .then((r) => {
         if (r.status === 404) {
@@ -118,60 +141,104 @@ export default function ProductPage() {
     };
   }, [id]);
 
+  /** Prefetch calc-price for every visible Plati option combination (smooth switching, no loading UI). */
   useEffect(() => {
-    if (!product || product.catalogSource !== 'plati') return;
-    if (!product.platiOptionGroups?.length) {
-      setLivePlatiGross(null);
-      return;
-    }
-    const keys = Object.keys(platiSel);
-    if (keys.length === 0) return;
+    if (!product || product.catalogSource !== 'plati' || !product.platiOptionGroups?.length) return;
 
-    calcAbort.current?.abort();
-    const ac = new AbortController();
-    calcAbort.current = ac;
-    setPriceBusy(true);
+    const base = platiSelectionsToRecord(product.platiSelections ?? []);
+    const groups = product.platiOptionGroups;
+    const dimensions = groups.map((g) =>
+      g.choices.map((c) => ({ optionId: g.optionId, valueId: c.valueId })),
+    );
+    const combos = cartesianPickLists(dimensions);
+    const toFetch = combos.slice(0, MAX_PLATI_PREFETCH_COMBOS);
+    if (toFetch.length === 0) return;
 
-    const tmr = window.setTimeout(() => {
-      fetch(`/api/products/${id}/calc-price`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ selections: recordToSelectionBody(platiSel) }),
-        signal: ac.signal,
-      })
-        .then(async (r) => {
-          if (!r.ok) throw new Error('calc');
-          return r.json() as Promise<{ price?: number }>;
-        })
-        .then((j) => {
-          if (ac.signal.aborted) return;
-          if (typeof j.price === 'number' && Number.isFinite(j.price)) {
-            setLivePlatiGross(j.price);
-          }
-        })
-        .catch(() => {
-          if (!ac.signal.aborted) setLivePlatiGross(null);
-        })
-        .finally(() => {
-          if (!ac.signal.aborted) setPriceBusy(false);
-        });
-    }, 180);
+    let cancelled = false;
+
+    (async () => {
+      for (let i = 0; i < toFetch.length; i += PLATI_PREFETCH_CONCURRENCY) {
+        if (cancelled) return;
+        const slice = toFetch.slice(i, i + PLATI_PREFETCH_CONCURRENCY);
+        await Promise.all(
+          slice.map(async (picks) => {
+            const sel: Record<number, number> = { ...base };
+            for (const p of picks) sel[p.optionId] = p.valueId;
+            const body = sortedSelectionBody(sel);
+            const key = platiPriceCacheKey(sel);
+            if (priceCacheRef.current.has(key)) return;
+            try {
+              const r = await fetch(`/api/products/${id}/calc-price`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ selections: body }),
+              });
+              if (!r.ok) return;
+              const j = (await r.json()) as { price?: number };
+              if (typeof j.price === 'number' && Number.isFinite(j.price)) {
+                priceCacheRef.current.set(key, j.price);
+              }
+            } catch {
+              /* ignore */
+            }
+          }),
+        );
+        if (!cancelled) setPrefetchTick((n) => n + 1);
+      }
+    })();
 
     return () => {
-      window.clearTimeout(tmr);
-      ac.abort();
+      cancelled = true;
     };
+  }, [product, id]);
+
+  /** If a combination was not prefetched (cap / edge), fetch once without showing loading state. */
+  useEffect(() => {
+    if (!product || product.catalogSource !== 'plati') return;
+    if (!product.platiOptionGroups?.length) return;
+    if (Object.keys(platiSel).length === 0) return;
+
+    const key = platiPriceCacheKey(platiSel);
+    if (priceCacheRef.current.has(key)) return;
+
+    const ac = new AbortController();
+    fetch(`/api/products/${id}/calc-price`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ selections: sortedSelectionBody(platiSel) }),
+      signal: ac.signal,
+    })
+      .then(async (r) => {
+        if (!r.ok) throw new Error('calc');
+        return r.json() as Promise<{ price?: number }>;
+      })
+      .then((j) => {
+        if (ac.signal.aborted) return;
+        if (typeof j.price === 'number' && Number.isFinite(j.price)) {
+          priceCacheRef.current.set(key, j.price);
+          setPrefetchTick((n) => n + 1);
+        }
+      })
+      .catch(() => {});
+
+    return () => ac.abort();
   }, [product, platiSel, id]);
 
   const effectiveGrossPrice = useMemo(() => {
     if (!product) return 0;
-    if (product.catalogSource === 'plati' && livePlatiGross != null) return livePlatiGross;
+    if (product.catalogSource === 'plati' && product.platiOptionGroups?.length) {
+      if (Object.keys(platiSel).length === 0) return product.price;
+      const key = platiPriceCacheKey(platiSel);
+      const hit = priceCacheRef.current.get(key);
+      if (hit != null) return hit;
+      return product.price;
+    }
     if (product.catalogSource === 'kinguin' && product.kinguinPriceVariants?.length && kinguinVarId) {
       const v = product.kinguinPriceVariants.find((x) => x.id === kinguinVarId);
       if (v) return applyTaxToBaseIqd(Math.round(eurToIqd(v.priceEur)), taxRatePercent);
     }
     return product.price;
-  }, [product, livePlatiGross, kinguinVarId, taxRatePercent]);
+  }, [product, platiSel, kinguinVarId, taxRatePercent, prefetchTick]);
 
   const variantLabelForCart = useCallback((): string | undefined => {
     if (!product) return undefined;
@@ -375,9 +442,6 @@ export default function ProductPage() {
                       </div>
                     </div>
                   )}
-                  {product.catalogSource === 'plati' && priceBusy && (
-                    <p className="text-[10px] text-muted">{t('priceUpdating')}</p>
-                  )}
                 </div>
               )}
 
@@ -387,7 +451,7 @@ export default function ProductPage() {
                 <div className="flex flex-col w-full items-start rtl:items-end">
                   <div className="flex items-center gap-3 md:gap-4">
                     <span
-                      className="text-3xl md:text-4xl font-bold tracking-tight title-gradient leading-none tabular-nums"
+                      className="text-3xl md:text-4xl font-bold tracking-tight title-gradient select-none leading-none tabular-nums outline-none"
                       lang="en"
                       translate="no"
                     >

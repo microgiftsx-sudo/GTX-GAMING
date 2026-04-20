@@ -119,6 +119,8 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  /* Avoid a visible text-caret / insertion line under gradient-filled text. */
+  caret-color: transparent;
 }
 
 .no-scrollbar::-webkit-scrollbar {
