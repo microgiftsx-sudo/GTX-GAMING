@@ -40,35 +40,39 @@ export default function ProductRelatedSection({ current }: { current: StoreProdu
     category: current.category,
   }).toString()}`;
 
-  useEffect(() => {
-    let cancelled = false;
-    const platform = encodeURIComponent(current.platform);
+  useEffect(
+    () => {
+      let cancelled = false;
+      const platform = encodeURIComponent(current.platform);
 
-    const run = async () => {
-      let pool = await fetchProductList(
-        `/api/products?platform=${platform}&limit=32&sort=relevance`
-      );
-      let picked = pickRelated(pool, current);
-      if (picked.length < 4) {
-        const broad = await fetchProductList(`/api/products?limit=40&sort=relevance`);
-        const byId = new Map<string, StoreProduct>();
-        for (const p of pool) byId.set(p.id, p);
-        for (const p of broad) {
-          if (!byId.has(p.id)) byId.set(p.id, p);
+      const run = async () => {
+        let pool = await fetchProductList(
+          `/api/products?platform=${platform}&limit=32&sort=relevance`
+        );
+        let picked = pickRelated(pool, current);
+        if (picked.length < 4) {
+          const broad = await fetchProductList(`/api/products?limit=40&sort=relevance`);
+          const byId = new Map<string, StoreProduct>();
+          for (const p of pool) byId.set(p.id, p);
+          for (const p of broad) {
+            if (!byId.has(p.id)) byId.set(p.id, p);
+          }
+          pool = Array.from(byId.values());
+          picked = pickRelated(pool, current);
         }
-        pool = Array.from(byId.values());
-        picked = pickRelated(pool, current);
-      }
-      if (!cancelled) setItems(picked);
-    };
+        if (!cancelled) setItems(picked);
+      };
 
-    run().catch(() => {
-      if (!cancelled) setItems([]);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [current.id, current.category, current.platform]);
+      run().catch(() => {
+        if (!cancelled) setItems([]);
+      });
+      return () => {
+        cancelled = true;
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [current.id, current.category, current.platform],
+  );
 
   if (items.length === 0) return null;
 

@@ -10,9 +10,9 @@ import { discountBadgeVisible } from "@/lib/store-product";
 import CatalogCardImage from "@/components/ui/CatalogCardImage";
 import DiscountBadge from "@/components/ui/DiscountBadge";
 
-/** Responsive `sizes` for home trending grid (1→2→3→5 columns). */
+/** Responsive `sizes` for home trending grid (2→3→5 columns). */
 const TRENDING_CARD_SIZES =
-  "(max-width: 419px) 100vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 20vw";
+  "(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 20vw";
 
 type TrendingProductsSectionProps = {
   /** From server — same list for every visitor until cache revalidates */
@@ -59,7 +59,7 @@ export default function TrendingProductsSection({ initialItems }: TrendingProduc
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 items-stretch gap-5 md:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 items-stretch gap-3 sm:gap-4 md:gap-6">
         {items.map((game, index) => (
           <article key={game.id} className="group flex min-h-0 flex-col">
             <div className="mb-2 shrink-0 overflow-hidden rounded-xl border border-edge bg-surface-elevated shadow-lg shadow-black/30 ring-1 ring-white/[0.04] md:mb-3 md:rounded-2xl">

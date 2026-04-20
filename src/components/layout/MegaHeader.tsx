@@ -65,11 +65,11 @@ export default function MegaHeader() {
   };
 
   const controlBtnBase =
-    'flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border px-2 py-2 transition-all touch-manipulation sm:gap-2 sm:px-3 md:min-h-0 md:py-2';
+    'flex min-h-9 shrink-0 items-center gap-1 rounded-lg border px-1.5 py-1.5 transition-all touch-manipulation sm:min-h-11 sm:gap-1.5 sm:rounded-xl sm:px-2 sm:py-2 md:min-h-0 md:gap-2 md:px-3 md:py-2';
 
   return (
     <header className="bg-brand-dark/75 backdrop-blur-xl border-b border-edge sticky top-0 z-50 w-full shadow-[0_8px_32px_rgba(0,0,0,0.35)] pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-[1fr_auto] gap-x-2 gap-y-3 px-3 py-3 sm:px-4 md:h-20 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-x-8 md:gap-y-0 md:py-0">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-[1fr_auto] gap-x-2 gap-y-1.5 px-2.5 py-2 sm:px-4 sm:py-2.5 md:h-20 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-x-8 md:gap-y-0 md:py-0">
         {/* Logo */}
         <Link
           href="/"
@@ -78,7 +78,7 @@ export default function MegaHeader() {
           <img
             src="/icons/logo.png"
             alt="GTX Gaming Logo"
-            className="h-11 w-11 rounded-xl object-cover transition-transform duration-300 group-hover:scale-105 md:h-12 md:w-12"
+            className="h-9 w-9 rounded-lg object-cover transition-transform duration-300 group-hover:scale-105 sm:h-10 sm:w-10 sm:rounded-xl md:h-12 md:w-12"
             loading="eager"
             decoding="async"
           />
@@ -88,7 +88,7 @@ export default function MegaHeader() {
         </Link>
 
         {/* Lang + currency + cart — same pattern as desktop on all breakpoints */}
-        <div className="relative z-[60] col-start-2 row-start-1 flex items-center justify-end gap-1.5 sm:gap-2 md:col-start-3 md:gap-4">
+        <div className="relative z-[60] col-start-2 row-start-1 flex items-center justify-end gap-1 sm:gap-2 md:col-start-3 md:gap-4">
           <div className="relative">
             <button
               type="button"
@@ -102,8 +102,8 @@ export default function MegaHeader() {
                   : 'border-transparent hover:border-white/10 hover:bg-white/5'
               }`}
             >
-              <Globe className="h-4 w-4 shrink-0 text-brand-blue sm:h-5 sm:w-5" />
-              <span className="max-w-[4.5rem] truncate text-[11px] font-bold uppercase sm:max-w-none sm:text-sm">
+              <Globe className="h-3.5 w-3.5 shrink-0 text-brand-blue sm:h-4 sm:w-4 md:h-5 md:w-5" />
+              <span className="max-w-[3.75rem] truncate text-[10px] font-bold uppercase sm:max-w-[4.5rem] sm:text-[11px] md:max-w-none md:text-sm">
                 {t(`languages.${locale}`)}
               </span>
             </button>
@@ -156,7 +156,7 @@ export default function MegaHeader() {
               }`}
             >
               <CurrencyFlag code={currency} size="sm" className="sm:text-lg" />
-              <span className="max-w-[3.25rem] truncate text-[11px] font-bold tracking-tight sm:max-w-none sm:text-sm">
+              <span className="max-w-[2.85rem] truncate text-[10px] font-bold tracking-tight sm:max-w-[3.25rem] sm:text-[11px] md:max-w-none md:text-sm">
                 {t(`currencies.${currency}`)}
               </span>
             </button>
@@ -193,9 +193,9 @@ export default function MegaHeader() {
 
           <Link
             href="/cart"
-            className="group relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-edge bg-surface-elevated p-2.5 shadow-sm shadow-black/20 transition-all hover:border-brand-orange/30 hover:bg-brand-orange/10 md:p-3 touch-manipulation"
+            className="group relative inline-flex min-h-9 min-w-9 items-center justify-center rounded-xl border border-edge bg-surface-elevated p-2 shadow-sm shadow-black/20 transition-all hover:border-brand-orange/30 hover:bg-brand-orange/10 sm:min-h-11 sm:min-w-11 sm:rounded-2xl sm:p-2.5 md:p-3 touch-manipulation"
           >
-            <ShoppingCart className="h-5 w-5 text-white transition-colors group-hover:text-brand-orange" />
+            <ShoppingCart className="h-[18px] w-[18px] text-white transition-colors group-hover:text-brand-orange sm:h-5 sm:w-5" />
             {itemCount > 0 && (
               <span
                 className="absolute -end-1 -top-1 flex h-4 w-4 items-center justify-center rounded-md border border-brand-dark bg-brand-purple text-[8px] font-bold text-white md:h-5 md:w-5 md:rounded-lg md:text-[10px] md:ring-2 md:ring-brand-dark"
@@ -212,7 +212,7 @@ export default function MegaHeader() {
         {/* Search Bar */}
         <div className="relative z-10 col-span-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1 md:max-w-2xl">
           <form onSubmit={handleSearchSubmit} className={`relative flex items-center transition-all duration-300 ${searchFocused ? 'md:scale-[1.02]' : ''}`}>
-            <Search className="absolute start-4 text-muted w-4 h-4 md:w-5 md:h-5 pointer-events-none" />
+            <Search className="pointer-events-none absolute start-3 h-3.5 w-3.5 text-muted sm:start-4 sm:h-4 sm:w-4 md:h-5 md:w-5" />
             <input 
               type="search"
               enterKeyHint="search"
@@ -221,13 +221,13 @@ export default function MegaHeader() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
-              className={`w-full bg-surface-elevated border border-edge rounded-xl md:rounded-2xl py-3 min-h-[48px] md:min-h-0 md:py-3 ps-10 md:ps-12 text-base text-foreground placeholder:text-faint focus:outline-none focus:border-brand-orange/45 focus:ring-2 focus:ring-focus-ring shadow-lg shadow-black/30 transition-all ${searchQuery ? 'pe-12' : 'pe-4'}`}
+              className={`w-full bg-surface-elevated border border-edge rounded-lg py-2 ps-9 text-sm text-foreground placeholder:text-faint shadow-lg shadow-black/30 transition-all focus:border-brand-orange/45 focus:outline-none focus:ring-2 focus:ring-focus-ring min-h-[40px] sm:min-h-[44px] sm:rounded-xl sm:py-2.5 sm:ps-10 sm:text-base md:min-h-0 md:rounded-2xl md:py-3 md:ps-12 ${searchQuery ? 'pe-10 sm:pe-12' : 'pe-3 sm:pe-4'}`}
             />
             {searchQuery && (
               <button 
                 type="button" 
                 onClick={() => setSearchQuery('')}
-                className="absolute end-2 top-1/2 -translate-y-1/2 min-h-10 min-w-10 inline-flex items-center justify-center rounded-lg text-faint hover:text-foreground touch-manipulation"
+                className="absolute end-1.5 top-1/2 inline-flex min-h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-md text-faint hover:text-foreground touch-manipulation sm:end-2 sm:min-h-10 sm:min-w-10 sm:rounded-lg"
               >
                 <X size={16} />
               </button>
@@ -240,7 +240,7 @@ export default function MegaHeader() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute top-full left-0 right-0 mt-3 p-4 bg-surface-elevated border border-edge rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.45)] z-[60] ring-1 ring-white/[0.04]"
+                className="absolute left-0 right-0 top-full z-[60] mt-2 rounded-xl border border-edge bg-surface-elevated p-3 shadow-[0_20px_50px_rgba(0,0,0,0.45)] ring-1 ring-white/[0.04] sm:mt-3 sm:rounded-2xl sm:p-4"
               >
                 {!searchQuery ? (
                   <>

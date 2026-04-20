@@ -72,7 +72,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const savedCurr = localStorage.getItem('gtx-currency');
     const savedCoupon = localStorage.getItem('gtx-applied-coupon');
     if (savedCart) {
-      try { setCart(JSON.parse(savedCart)); } catch (e) {}
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch {}
     }
     if (savedCurr) setCurrency(savedCurr);
     if (savedCoupon) {
@@ -81,7 +83,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (parsed?.code && typeof parsed.percentOff === 'number') {
           setAppliedCoupon({ code: String(parsed.code).toUpperCase(), percentOff: parsed.percentOff });
         }
-      } catch (e) {}
+      } catch {}
     }
     setIsLoaded(true);
   }, []);

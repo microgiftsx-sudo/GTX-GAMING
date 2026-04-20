@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import type { StoreProduct } from '@/lib/store-product';
@@ -9,7 +9,7 @@ import DiscountBadge from '@/components/ui/DiscountBadge';
 import { discountBadgeVisible } from '@/lib/store-product';
 import { useCart } from '@/context/CartContext';
 import SearchSidebar from '@/components/search/SearchSidebar';
-import { Link, useRouter } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import { ChevronDown, Filter, LayoutGrid, Search as SearchIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,12 +18,10 @@ const SEARCH_CARD_SIZES = '(max-width: 1279px) 50vw, 33vw';
 
 export default function SearchPage() {
   const t = useTranslations('Search');
-  const d = useTranslations('Data');
   const tp = useTranslations('Product');
   const locale = useLocale();
   const isRtl = locale === 'ar';
   const searchParams = useSearchParams();
-  const router = useRouter();
   const { addItem, formatPrice } = useCart();
 
   const [sortBy, setSortBy] = useState('relevance');
@@ -89,43 +87,7 @@ export default function SearchPage() {
       });
 
     return () => ac.abort();
-  }, [query, categoryParam, platformParam, minPriceParam, maxPriceParam, sortBy]);
-
-  const activePill = useMemo((): 'all' | 'games' | 'cards' | 'software' | 'dlc' | null => {
-    if (!categoryParam && !platformParam) return 'all';
-    const parts = categoryParam.split(',').filter(Boolean);
-    if (parts.length === 1 && ['games', 'cards', 'software', 'dlc'].includes(parts[0])) {
-      return parts[0] as 'games' | 'cards' | 'software' | 'dlc';
-    }
-    return null;
-  }, [categoryParam, platformParam]);
-
-  const navigatePill = useCallback(
-    (pill: 'all' | 'games' | 'cards' | 'software' | 'dlc') => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete('platform');
-      if (pill === 'all') {
-        params.delete('category');
-      } else {
-        params.set('category', pill);
-      }
-      const s = params.toString();
-      router.push(s ? `/search?${s}` : '/search');
-    },
-    [router, searchParams],
-  );
-
-  const pillDefs = useMemo(
-    () =>
-      [
-        { id: 'all' as const, label: t('all') },
-        { id: 'games' as const, label: d('categories.games') },
-        { id: 'cards' as const, label: d('categories.cards') },
-        { id: 'software' as const, label: d('categories.software') },
-        { id: 'dlc' as const, label: d('categories.dlc') },
-      ] as const,
-    [t, d],
-  );
+  }, [query, categories, platforms, minPrice, maxPrice, sortBy]);
 
   return (
     <div className="min-h-screen pb-20">
@@ -152,32 +114,8 @@ export default function SearchPage() {
                 {t('resultsFound', { count: total.toLocaleString('en-US', { numberingSystem: 'latn' }) })}
               </p>
 
-              {/* Mobile: category pills + compact toolbar (results + filter + sort) */}
+              {/* Mobile: compact toolbar (results + filter + sort); category pills hidden — use sidebar filters */}
               <div className="mt-4 space-y-3 md:hidden">
-                <div className="relative flex items-center gap-0.5">
-                  <div className="h-px w-3 shrink-0 bg-brand-orange/50 rounded-full" aria-hidden />
-                  <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 -mx-0.5 px-0.5 scrollbar-thin [scrollbar-width:thin] touch-pan-x">
-                    {pillDefs.map(({ id, label }) => {
-                      const isActive = activePill === id;
-                      return (
-                        <button
-                          key={id}
-                          type="button"
-                          onClick={() => navigatePill(id)}
-                          className={`shrink-0 rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide transition-colors touch-manipulation min-h-10 ${
-                            isActive
-                              ? 'border-brand-orange text-foreground bg-surface-elevated shadow-sm'
-                              : 'border-edge text-muted bg-surface/80 active:bg-surface-elevated'
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="h-px w-3 shrink-0 bg-brand-orange/50 rounded-full" aria-hidden />
-                </div>
-
                 <div className="flex items-stretch gap-2">
                   <p className="flex-1 min-w-0 self-center text-[11px] font-semibold uppercase tracking-wider text-muted leading-tight">
                     {t('resultsFound', { count: total.toLocaleString('en-US', { numberingSystem: 'latn' }) })}

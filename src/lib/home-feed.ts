@@ -5,6 +5,11 @@ import {
   getHeroCacheTtlSeconds,
   HERO_CAROUSEL_CACHE_TAG,
 } from '@/lib/hero-products';
+import {
+  getTrendingProductIds,
+  getTrendingStoreProductsByIds,
+  TRENDING_HOME_CACHE_TAG,
+} from '@/lib/trending-products';
 import { getTaxRatePercent } from '@/lib/tax';
 import type { StoreProduct } from '@/lib/store-product';
 import {
@@ -40,20 +45,34 @@ export async function getCachedHeroHomeItems(): Promise<StoreProduct[]> {
 
 const TRENDING_LIMIT = 10;
 
-/** Home “trending” strip — same cache key as /api/products?page=1&limit=10&sort=relevance. */
+/** Home “trending” strip — explicit Kinguin IDs when set, else catalog relevance (same as before). */
 export async function getCachedHomeTrendingItems(): Promise<StoreProduct[]> {
   const taxRate = await getTaxRatePercent();
-  const args: CachedProductsArgs = {
-    page: 1,
-    limit: TRENDING_LIMIT,
-    q: '',
-    category: [],
-    platform: [],
-    minPrice: 0,
-    maxPriceRaw: null,
-    sort: 'relevance',
-    taxRate,
-  };
-  const payload = await getCachedProductListing(args);
-  return stabilizeCatalogOrder(payload.items);
+  const ids = await getTrendingProductIds();
+  const idsKey = ids.length ? ids.join(',') : 'catalog';
+  const ttl = await getHeroCacheTtlSeconds();
+
+  return unstable_cache(
+    async () => {
+      const configured = await getTrendingProductIds();
+      if (configured.length === 0) {
+        const args: CachedProductsArgs = {
+          page: 1,
+          limit: TRENDING_LIMIT,
+          q: '',
+          category: [],
+          platform: [],
+          minPrice: 0,
+          maxPriceRaw: null,
+          sort: 'relevance',
+          taxRate,
+        };
+        const payload = await getCachedProductListing(args);
+        return stabilizeCatalogOrder(payload.items);
+      }
+      return getTrendingStoreProductsByIds(configured, taxRate);
+    },
+    ['home-trending-v2', idsKey, String(taxRate)],
+    { revalidate: ttl, tags: [TRENDING_HOME_CACHE_TAG] },
+  )();
 }

@@ -35,6 +35,10 @@ import {
   setHeroCacheTtlSeconds,
   setHeroProductIds,
 } from '@/lib/hero-products';
+import {
+  getTrendingProductIds,
+  setTrendingProductIds,
+} from '@/lib/trending-products';
 
 type TelegramApiResponse<T> = {
   ok: boolean;
@@ -426,6 +430,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
           '/coupons — list coupons',
           '/coupon_off CODE — disable a coupon',
           '/hero — hero carousel Kinguin IDs; set: /hero 123 456; clear: /hero clear',
+          '/trending — home trending strip IDs; set: /trending 123 456; clear: /trending clear',
           `/hero_ttl — cache window (default ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h); set: /hero_ttl 6h or /hero_ttl 3600`,
         ].join('\n'),
       );
@@ -656,6 +661,46 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       return;
     }
 
+    if (cmdToken === '/trending' || text.startsWith('/trending ')) {
+      await clearPendingPaymentEdit(userId);
+      const parts = text.trim().split(/\s+/);
+      if (parts.length === 1) {
+        const ids = await getTrendingProductIds();
+        await sendText(
+          chatId,
+          [
+            '🔥 Home trending — Kinguin product IDs:',
+            ids.length ? ids.join(' → ') : '(none — uses default catalog relevance)',
+            '',
+            'Set up to 10 IDs: /trending 12345 67890',
+            'Clear: /trending clear',
+          ].join('\n'),
+        );
+        return;
+      }
+      if (parts[1].toLowerCase() === 'clear') {
+        await setTrendingProductIds([]);
+        await sendText(
+          chatId,
+          'Trending cleared. Strip will load the default relevance list from the catalog.',
+        );
+        return;
+      }
+      const next = await setTrendingProductIds(parts.slice(1));
+      if (next.length === 0) {
+        await sendText(
+          chatId,
+          'No valid numeric IDs. Send Kinguin product IDs, e.g. /trending 12345 67890',
+        );
+        return;
+      }
+      await sendText(
+        chatId,
+        `Trending updated (${next.length}): ${next.join(' → ')}`,
+      );
+      return;
+    }
+
     if (cmdToken === '/coupon_off' || text.startsWith('/coupon_off ')) {
       await clearPendingPaymentEdit(userId);
       const parts = text.split(/\s+/);
@@ -712,7 +757,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     await sendText(
       chatId,
-      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero, /hero_ttl',
+      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero, /trending, /hero_ttl',
     );
     return;
   }

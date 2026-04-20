@@ -158,7 +158,7 @@ export default function HeroCarousel({ initialSlides }: HeroCarouselProps) {
 
   return (
     <div className="relative w-full max-w-7xl mx-auto px-2 sm:px-4 mt-2 md:mt-8 group">
-      <div className="relative h-[min(44vh,340px)] min-h-[248px] md:h-[min(520px,58vh)] md:min-h-[480px] w-full bg-surface-elevated rounded-xl md:rounded-[40px] overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.45)] border border-edge ring-1 ring-white/[0.04]">
+      <div className="relative aspect-[16/10] max-h-[280px] min-h-[220px] md:aspect-auto md:h-[min(520px,58vh)] md:max-h-none md:min-h-[480px] w-full bg-surface-elevated rounded-xl md:rounded-[40px] overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.45)] border border-edge ring-1 ring-white/[0.04]">
         {showSkeleton ? (
           <div
             className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-surface-elevated to-surface-elevated animate-pulse"
@@ -190,6 +190,15 @@ export default function HeroCarousel({ initialSlides }: HeroCarouselProps) {
             className="absolute inset-0 size-full"
           >
             <div className="absolute inset-0 overflow-hidden">
+              {/* Mobile-only: blurred cover layer fills any letterbox bars behind the contained banner */}
+              <img
+                src={storefrontImageSrc(current!.image)}
+                alt=""
+                aria-hidden
+                loading="eager"
+                decoding="async"
+                className="absolute inset-0 z-[0] size-full object-cover object-center scale-125 blur-xl opacity-60 md:hidden"
+              />
               <img
                 src={storefrontImageSrc(current!.image)}
                 alt=""
@@ -197,7 +206,7 @@ export default function HeroCarousel({ initialSlides }: HeroCarouselProps) {
                 decoding="async"
                 fetchPriority="high"
                 sizes="(max-width: 768px) 100vw, min(1280px, 100vw)"
-                className="absolute inset-0 z-[1] size-full object-cover object-center"
+                className="absolute inset-0 z-[1] size-full object-contain object-center md:object-cover"
               />
               {/* Mobile: keep cover visible — light top vignette only; desktop: subtle top fade */}
               <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/25 via-transparent to-transparent to-[30%] md:from-brand-dark/35 md:via-transparent md:to-[50%]" />
@@ -303,6 +312,7 @@ export default function HeroCarousel({ initialSlides }: HeroCarouselProps) {
             <button
               key={`dot-${product.id}`}
               type="button"
+              role="tab"
               aria-selected={active}
               aria-label={product.title}
               onClick={() => {
