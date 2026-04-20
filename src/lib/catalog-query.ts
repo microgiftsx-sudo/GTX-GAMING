@@ -6,8 +6,8 @@ import { fromKinguinJson } from "@/lib/store-product";
 import type { StoreProduct } from "@/lib/store-product";
 import { applyVatToStoreProduct } from "@/lib/store-product-vat";
 import { getBaghdadDayKey } from "@/lib/daily-cache-key";
-import { fetchPlatiGoodsBySection } from "@/lib/plati/client";
 import { fromPlatiGoodsItem } from "@/lib/plati/to-store-product";
+import { getPlatiSectionFullCached } from "@/lib/plati/section-full-cache";
 import {
   CATALOG_LISTING_TAG,
   getCatalogSources,
@@ -101,27 +101,20 @@ export async function fetchProductsUncached(
       : undefined;
 
   const mergePlati = wantsPlatiMerge(sources, args);
-  const sectionId = process.env.PLATI_DEFAULT_SECTION_ID?.trim() ?? "";
 
-  /** Plati-only catalog (Kinguin disabled). */
+  /** Plati-only catalog (Kinguin disabled) — full section, paginated in memory. */
   if (!sources.kinguin && sources.plati && platiEnvReady()) {
-    const pData = await fetchPlatiGoodsBySection({
-      idSection: sectionId,
-      page,
-      rows: Math.min(500, limit),
-      lang: "en-US",
-      encoding: "utf-8",
-      currency: "USD",
-      order: "",
-    });
-    let items = pData.items
+    const raw = await getPlatiSectionFullCached();
+    let mapped = raw
       .map((i) => fromPlatiGoodsItem(i))
       .map((p) => applyVatToStoreProduct(p, taxRate));
-    items = applyIqdRangeFilter(items, minPrice, maxPriceRaw);
-    items = sortCatalogItems(items, sort);
+    mapped = applyIqdRangeFilter(mapped, minPrice, maxPriceRaw);
+    mapped = sortCatalogItems(mapped, sort);
+    const start = (page - 1) * limit;
+    const slice = mapped.slice(start, start + limit);
     return {
-      items: items.slice(0, limit),
-      total: pData.cntGoods,
+      items: slice,
+      total: mapped.length,
       page,
       limit,
     };
@@ -149,20 +142,14 @@ export async function fetchProductsUncached(
 
   let platiCount = 0;
   if (mergePlati && sources.kinguin) {
-    const pData = await fetchPlatiGoodsBySection({
-      idSection: sectionId,
-      page,
-      rows: Math.min(500, limit),
-      lang: "en-US",
-      encoding: "utf-8",
-      currency: "USD",
-      order: "",
-    });
-    platiCount = pData.cntGoods;
-    const platiItems = pData.items
+    const raw = await getPlatiSectionFullCached();
+    platiCount = raw.length;
+    const start = (page - 1) * limit;
+    const platiSlice = raw
+      .slice(start, start + limit)
       .map((i) => fromPlatiGoodsItem(i))
       .map((p) => applyVatToStoreProduct(p, taxRate));
-    items = [...items, ...platiItems];
+    items = [...items, ...platiSlice];
   }
 
   items = applyIqdRangeFilter(items, minPrice, maxPriceRaw);

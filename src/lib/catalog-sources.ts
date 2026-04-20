@@ -8,6 +8,9 @@ const FILE = path.join(getDataRoot(), "catalog-sources.json");
 /** Next.js cache tag — busted when Telegram /sources updates flags */
 export const CATALOG_LISTING_TAG = "catalog-listing";
 
+/** Full Plati section list (`getPlatiSectionFullCached`) */
+export const PLATI_SECTION_FULL_TAG = "plati-section-full";
+
 export type CatalogSourcesState = {
   kinguin: boolean;
   plati: boolean;
@@ -48,6 +51,7 @@ export async function setCatalogSources(
   await writeFile(FILE, `${JSON.stringify(next, null, 2)}\n`, "utf-8");
   try {
     revalidateTag(CATALOG_LISTING_TAG, { expire: 0 });
+    revalidateTag(PLATI_SECTION_FULL_TAG, { expire: 0 });
   } catch {
     /* revalidateTag may throw outside a request context */
   }
