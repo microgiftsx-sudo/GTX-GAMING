@@ -39,6 +39,7 @@ import {
   getTrendingProductIds,
   setTrendingProductIds,
 } from '@/lib/trending-products';
+import { getCatalogSources, setCatalogSources } from '@/lib/catalog-sources';
 
 type TelegramApiResponse<T> = {
   ok: boolean;
@@ -432,6 +433,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
           '/hero — hero carousel Kinguin IDs; set: /hero 123 456; clear: /hero clear',
           '/trending — home trending strip IDs; set: /trending 123 456; clear: /trending clear',
           `/hero_ttl — cache window (default ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h); set: /hero_ttl 6h or /hero_ttl 3600`,
+          '/sources — catalog feeds: show or set kinguin/plati on|off (at least one must stay on)',
         ].join('\n'),
       );
       return;
@@ -701,6 +703,58 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       return;
     }
 
+    if (cmdToken === '/sources' || text.startsWith('/sources ')) {
+      await clearPendingPaymentEdit(userId);
+      const parts = text.trim().split(/\s+/);
+      if (parts.length === 1) {
+        const s = await getCatalogSources();
+        await sendText(
+          chatId,
+          [
+            '🛒 Store catalog sources (GET /api/products):',
+            `• Kinguin: ${s.kinguin ? 'ON' : 'OFF'}`,
+            `• Plati (merged when no category/platform/search filters): ${s.plati ? 'ON' : 'OFF'}`,
+            '',
+            'Set:',
+            '/sources kinguin off',
+            '/sources plati on',
+            '(At least one source must remain enabled.)',
+          ].join('\n'),
+        );
+        return;
+      }
+      if (parts.length < 3) {
+        await sendText(
+          chatId,
+          'Usage: /sources kinguin on|off   or   /sources plati on|off',
+        );
+        return;
+      }
+      const which = parts[1].toLowerCase();
+      const mode = parts[2].toLowerCase();
+      if (which !== 'kinguin' && which !== 'plati') {
+        await sendText(chatId, 'First arg must be kinguin or plati.');
+        return;
+      }
+      if (mode !== 'on' && mode !== 'off') {
+        await sendText(chatId, 'Second arg must be on or off.');
+        return;
+      }
+      try {
+        const patch =
+          which === 'kinguin' ? { kinguin: mode === 'on' } : { plati: mode === 'on' };
+        const next = await setCatalogSources(patch);
+        await sendText(
+          chatId,
+          `Updated. Kinguin: ${next.kinguin ? 'ON' : 'OFF'} · Plati: ${next.plati ? 'ON' : 'OFF'}`,
+        );
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await sendText(chatId, msg);
+      }
+      return;
+    }
+
     if (cmdToken === '/coupon_off' || text.startsWith('/coupon_off ')) {
       await clearPendingPaymentEdit(userId);
       const parts = text.split(/\s+/);
@@ -757,7 +811,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     await sendText(
       chatId,
-      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero, /trending, /hero_ttl',
+      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero, /trending, /hero_ttl, /sources',
     );
     return;
   }
