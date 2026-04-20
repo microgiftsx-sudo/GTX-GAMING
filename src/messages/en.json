@@ -60,8 +60,6 @@
   "Product": {
     "buyNow": "Buy Now",
     "addToCart": "Add to Cart",
-    "openPartner": "Open on Plati",
-    "partnerNote": "This item is sold via our Plati / Digiseller partner. Complete payment on their secure page — it is not added to the GTX cart.",
     "description": "Product Description",
     "platform": "Platform",
     "region": "Region",

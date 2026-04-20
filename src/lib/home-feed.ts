@@ -15,8 +15,9 @@ import type { StoreProduct } from '@/lib/store-product';
 import {
   getCachedProductListing,
   stabilizeCatalogOrder,
-  type CachedProductsArgs,
 } from '@/lib/catalog-query';
+import type { CachedProductsArgs } from '@/lib/catalog-search-args';
+import { getCatalogProvider } from '@/lib/catalog-provider';
 
 function stabilizeHeroOrder(ids: string[], items: StoreProduct[]): StoreProduct[] {
   if (ids.length > 0) {
@@ -31,6 +32,7 @@ export async function getCachedHeroHomeItems(): Promise<StoreProduct[]> {
   const idsKey = ids.length ? ids.join(',') : 'catalog';
   const taxRate = await getTaxRatePercent();
   const ttl = await getHeroCacheTtlSeconds();
+  const provider = await getCatalogProvider();
 
   return unstable_cache(
     async () => {
@@ -38,7 +40,7 @@ export async function getCachedHeroHomeItems(): Promise<StoreProduct[]> {
       const raw = await getHeroStoreProducts();
       return stabilizeHeroOrder(configuredIds, raw);
     },
-    ['hero-store-products-v3', idsKey, String(taxRate)],
+    ['hero-store-products-v4', provider, idsKey, String(taxRate)],
     { revalidate: ttl, tags: [HERO_CAROUSEL_CACHE_TAG] },
   )();
 }
@@ -51,6 +53,7 @@ export async function getCachedHomeTrendingItems(): Promise<StoreProduct[]> {
   const ids = await getTrendingProductIds();
   const idsKey = ids.length ? ids.join(',') : 'catalog';
   const ttl = await getHeroCacheTtlSeconds();
+  const provider = await getCatalogProvider();
 
   return unstable_cache(
     async () => {
@@ -72,7 +75,7 @@ export async function getCachedHomeTrendingItems(): Promise<StoreProduct[]> {
       }
       return getTrendingStoreProductsByIds(configured, taxRate);
     },
-    ['home-trending-v2', idsKey, String(taxRate)],
+    ['home-trending-v3', provider, idsKey, String(taxRate)],
     { revalidate: ttl, tags: [TRENDING_HOME_CACHE_TAG] },
   )();
 }

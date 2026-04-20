@@ -11,6 +11,10 @@ export function isAllowedImageHost(hostname: string): boolean {
   if (h.endsWith('.kinguinusercontent.com')) return true;
   /* أغلفة ألعاب Steam وغيرها يعيدها Kinguin أحياناً من CDN ستيم */
   if (h === 'steamstatic.com' || h.endsWith('.steamstatic.com')) return true;
+  /* Plati / Digiseller marketplace imagery */
+  if (h === 'graph.digiseller.com' || h.endsWith('.digiseller.com')) return true;
+  if (h === 'digiseller.mycdn.ink' || h.endsWith('.digiseller.mycdn.ink')) return true;
+  if (h === 'plati.market' || h.endsWith('.plati.market')) return true;
   return false;
 }
 

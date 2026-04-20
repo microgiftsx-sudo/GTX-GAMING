@@ -2,8 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { getDataRoot } from '@/lib/data-root';
 import { revalidateTag } from 'next/cache';
-import { fetchProductByKinguinId, fetchProductsPage } from '@/lib/kinguin/client';
-import { fromKinguinJson } from '@/lib/store-product';
+import { getCatalogProductDetailUncached, searchCatalogUncached } from '@/lib/catalog/facade';
 import type { StoreProduct } from '@/lib/store-product';
 import { applyVatToStoreProduct } from '@/lib/store-product-vat';
 import { getTaxRatePercent } from '@/lib/tax';
@@ -82,7 +81,7 @@ export function revalidateHeroCarousel(): void {
   }
 }
 
-/** Kinguin product IDs configured for the home hero (empty = use catalog default). */
+/** Product IDs configured for the home hero (empty = use catalog default). */
 export async function getHeroProductIds(): Promise<string[]> {
   const s = await readSettings();
   return s.ids;
@@ -118,15 +117,18 @@ export async function getHeroStoreProducts(): Promise<StoreProduct[]> {
   const taxRate = await getTaxRatePercent();
   const ids = await getHeroProductIds();
   if (ids.length === 0) {
-    const data = await fetchProductsPage({
+    const raw = await searchCatalogUncached({
       page: 1,
       limit: HERO_CAROUSEL_MAX,
-      sortBy: 'updatedAt',
-      sortType: 'desc',
+      q: '',
+      category: [],
+      platform: [],
+      minPrice: 0,
+      maxPriceRaw: null,
+      sort: 'relevance',
+      taxRate,
     });
-    return (data.results ?? [])
-      .map(fromKinguinJson)
-      .map((p) => applyVatToStoreProduct(p, taxRate));
+    return raw.items.map((p) => applyVatToStoreProduct(p, taxRate));
   }
 
   const items: StoreProduct[] = [];
@@ -134,8 +136,25 @@ export async function getHeroStoreProducts(): Promise<StoreProduct[]> {
     const kid = Number.parseInt(id, 10);
     if (!Number.isFinite(kid)) continue;
     try {
-      const json = await fetchProductByKinguinId(kid);
-      items.push(applyVatToStoreProduct(fromKinguinJson(json), taxRate));
+      const detail = await getCatalogProductDetailUncached(kid);
+      items.push(
+        applyVatToStoreProduct(
+          {
+            id: detail.id,
+            kinguinId: detail.kinguinId,
+            title: detail.title,
+            price: detail.price,
+            originalPrice: detail.originalPrice,
+            discount: detail.discount,
+            category: detail.category,
+            platform: detail.platform,
+            region: detail.region,
+            image: detail.image,
+            description: detail.description,
+          },
+          taxRate,
+        ),
+      );
     } catch {
       /* omit missing or API errors */
     }

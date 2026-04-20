@@ -2,8 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { getDataRoot } from "@/lib/data-root";
 import { revalidateTag } from "next/cache";
-import { fetchProductByKinguinId } from "@/lib/kinguin/client";
-import { fromKinguinJson } from "@/lib/store-product";
+import { getCatalogProductDetailUncached } from "@/lib/catalog/facade";
 import type { StoreProduct } from "@/lib/store-product";
 import { applyVatToStoreProduct } from "@/lib/store-product-vat";
 
@@ -84,8 +83,25 @@ export async function getTrendingStoreProductsByIds(
     const kid = Number.parseInt(id, 10);
     if (!Number.isFinite(kid)) continue;
     try {
-      const json = await fetchProductByKinguinId(kid);
-      items.push(applyVatToStoreProduct(fromKinguinJson(json), taxRate));
+      const detail = await getCatalogProductDetailUncached(kid);
+      items.push(
+        applyVatToStoreProduct(
+          {
+            id: detail.id,
+            kinguinId: detail.kinguinId,
+            title: detail.title,
+            price: detail.price,
+            originalPrice: detail.originalPrice,
+            discount: detail.discount,
+            category: detail.category,
+            platform: detail.platform,
+            region: detail.region,
+            image: detail.image,
+            description: detail.description,
+          },
+          taxRate,
+        ),
+      );
     } catch {
       /* omit missing or API errors */
     }

@@ -39,7 +39,11 @@ import {
   getTrendingProductIds,
   setTrendingProductIds,
 } from '@/lib/trending-products';
-import { getCatalogSources, setCatalogSources } from '@/lib/catalog-sources';
+import {
+  getCatalogProvider,
+  setCatalogProvider,
+  type CatalogProvider,
+} from '@/lib/catalog-provider';
 
 type TelegramApiResponse<T> = {
   ok: boolean;
@@ -108,7 +112,7 @@ function statusLabel(status: OrderStatus) {
 
 function orderKeyboard(order: OrderRecord) {
   const productButtons = order.items.slice(0, 2).map((item, idx) => ({
-    text: `Kinguin ${idx + 1}`,
+    text: `Product ${idx + 1}`,
     url: item.kinguinUrl,
   }));
 
@@ -430,10 +434,10 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
           '/gencoupon PERCENT [maxUses] [days] — create discount code',
           '/coupons — list coupons',
           '/coupon_off CODE — disable a coupon',
-          '/hero — hero carousel Kinguin IDs; set: /hero 123 456; clear: /hero clear',
+          '/hero — hero carousel product IDs; set: /hero 123 456; clear: /hero clear',
           '/trending — home trending strip IDs; set: /trending 123 456; clear: /trending clear',
           `/hero_ttl — cache window (default ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h); set: /hero_ttl 6h or /hero_ttl 3600`,
-          '/sources — catalog feeds: show or set kinguin/plati on|off (at least one must stay on)',
+          '/catalog — show catalog source; set: /catalog kinguin | /catalog plati',
         ].join('\n'),
       );
       return;
@@ -450,6 +454,34 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     }
 
     const cmdToken = text.split(/\s+/)[0]?.split('@')[0] ?? '';
+
+    if (cmdToken === '/catalog' || text.startsWith('/catalog ')) {
+      await clearPendingPaymentEdit(userId);
+      const parts = text.trim().split(/\s+/);
+      if (parts.length === 1) {
+        const p = await getCatalogProvider();
+        await sendText(
+          chatId,
+          `Catalog provider: ${p}\n\nSwitch:\n/catalog kinguin\n/catalog plati`,
+        );
+        return;
+      }
+      const raw = parts[1]?.toLowerCase();
+      let next: CatalogProvider | null = null;
+      if (raw === 'kinguin' || raw === 'kg') next = 'kinguin';
+      if (raw === 'plati' || raw === 'digiseller' || raw === 'plati.market') next = 'plati';
+      if (!next) {
+        await sendText(chatId, 'Usage: /catalog kinguin  or  /catalog plati');
+        return;
+      }
+      const saved = await setCatalogProvider(next);
+      await sendText(
+        chatId,
+        `Catalog provider set to: ${saved}. Listing, hero, and trending caches were invalidated.`,
+      );
+      return;
+    }
+
     if (cmdToken === '/tax' || text.startsWith('/tax ')) {
       await clearPendingPaymentEdit(userId);
       const parts = text.split(/\s+/);
@@ -630,7 +662,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         await sendText(
           chatId,
           [
-            '🖼 Home hero — Kinguin product IDs:',
+            '🖼 Home hero — catalog product IDs:',
             ids.length ? ids.join(' → ') : '(none — carousel uses default catalog)',
             `⏱ Cache window: ${formatHeroTtlHuman(ttlSec)} (${ttlSec}s) — /hero_ttl to change`,
             '',
@@ -652,7 +684,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       if (next.length === 0) {
         await sendText(
           chatId,
-          'No valid numeric IDs. Send Kinguin product IDs, e.g. /hero 12345 67890',
+          'No valid numeric IDs. Send catalog product IDs, e.g. /hero 12345 67890',
         );
         return;
       }
@@ -671,7 +703,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         await sendText(
           chatId,
           [
-            '🔥 Home trending — Kinguin product IDs:',
+            '🔥 Home trending — catalog product IDs:',
             ids.length ? ids.join(' → ') : '(none — uses default catalog relevance)',
             '',
             'Set up to 10 IDs: /trending 12345 67890',
@@ -692,7 +724,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       if (next.length === 0) {
         await sendText(
           chatId,
-          'No valid numeric IDs. Send Kinguin product IDs, e.g. /trending 12345 67890',
+          'No valid numeric IDs. Send catalog product IDs, e.g. /trending 12345 67890',
         );
         return;
       }
@@ -700,58 +732,6 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         chatId,
         `Trending updated (${next.length}): ${next.join(' → ')}`,
       );
-      return;
-    }
-
-    if (cmdToken === '/sources' || text.startsWith('/sources ')) {
-      await clearPendingPaymentEdit(userId);
-      const parts = text.trim().split(/\s+/);
-      if (parts.length === 1) {
-        const s = await getCatalogSources();
-        await sendText(
-          chatId,
-          [
-            '🛒 Store catalog sources (GET /api/products):',
-            `• Kinguin: ${s.kinguin ? 'ON' : 'OFF'}`,
-            `• Plati (merged when no category/platform/search filters): ${s.plati ? 'ON' : 'OFF'}`,
-            '',
-            'Set:',
-            '/sources kinguin off',
-            '/sources plati on',
-            '(At least one source must remain enabled.)',
-          ].join('\n'),
-        );
-        return;
-      }
-      if (parts.length < 3) {
-        await sendText(
-          chatId,
-          'Usage: /sources kinguin on|off   or   /sources plati on|off',
-        );
-        return;
-      }
-      const which = parts[1].toLowerCase();
-      const mode = parts[2].toLowerCase();
-      if (which !== 'kinguin' && which !== 'plati') {
-        await sendText(chatId, 'First arg must be kinguin or plati.');
-        return;
-      }
-      if (mode !== 'on' && mode !== 'off') {
-        await sendText(chatId, 'Second arg must be on or off.');
-        return;
-      }
-      try {
-        const patch =
-          which === 'kinguin' ? { kinguin: mode === 'on' } : { plati: mode === 'on' };
-        const next = await setCatalogSources(patch);
-        await sendText(
-          chatId,
-          `Updated. Kinguin: ${next.kinguin ? 'ON' : 'OFF'} · Plati: ${next.plati ? 'ON' : 'OFF'}`,
-        );
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        await sendText(chatId, msg);
-      }
       return;
     }
 
@@ -811,7 +791,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     await sendText(
       chatId,
-      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero, /trending, /hero_ttl, /sources',
+      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero, /trending, /hero_ttl, /catalog',
     );
     return;
   }

@@ -12,6 +12,8 @@ import {
 } from '@/lib/coupons';
 import { getTaxRatePercent, netFromGrossIqd } from '@/lib/tax';
 import { sendOrderToTelegram } from '@/lib/telegram-bot';
+import { getCatalogProvider } from '@/lib/catalog-provider';
+import { storefrontProductUrl } from '@/lib/catalog/facade';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,10 +24,6 @@ type OrderItemInput = {
   quantity: number;
   image?: string;
 };
-
-function kinguinProductUrl(productId: string) {
-  return `https://www.kinguin.net/product/${encodeURIComponent(productId)}`;
-}
 
 function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -76,13 +74,14 @@ export async function POST(req: NextRequest) {
     const baseUrl = host ? `${proto}://${host}` : '';
     const receiptUrl = `${baseUrl}/api/uploads/receipt/${receiptFile}`;
 
+    const catalogProvider = await getCatalogProvider();
     const items: OrderItem[] = parsedItems.map((item) => ({
       id: String(item.id),
       title: String(item.title),
       price: Number(item.price) || 0,
       quantity: Math.max(1, Number(item.quantity) || 1),
       image: item.image ? String(item.image) : undefined,
-      kinguinUrl: kinguinProductUrl(String(item.id)),
+      kinguinUrl: storefrontProductUrl(catalogProvider, String(item.id)),
     }));
 
     const sumFromItems = items.reduce((sum, item) => sum + item.price * item.quantity, 0);

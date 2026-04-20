@@ -1,5 +1,5 @@
 import { Tajawal, Outfit } from "next/font/google";
-import type { Metadata, Viewport } from "next";
+import type { Viewport } from "next";
 import "../globals.css";
 import MegaHeader from "@/components/layout/MegaHeader";
 import NavBar from "@/components/layout/NavBar";
@@ -40,12 +40,7 @@ export async function generateMetadata({
   return {
     title: t('title'),
     description: t('description'),
-    icons: {
-      icon: [{ url: '/icons/logo.png', type: 'image/png' }],
-      shortcut: '/icons/logo.png',
-      apple: '/icons/logo.png',
-    },
-  } satisfies Metadata;
+  };
 }
 
 export default async function LocaleLayout({

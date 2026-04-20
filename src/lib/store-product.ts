@@ -17,18 +17,12 @@ export type StoreProduct = {
   region: 'global' | 'iq' | 'us' | 'eu';
   image: string;
   description: string | null;
-  /** Kinguin catalog vs Plati affiliate row */
-  source?: 'kinguin' | 'plati';
-  /** Plati / Digiseller checkout when `source === 'plati'` */
-  externalBuyUrl?: string;
 };
 
 /** From `GET /api/products/[id]` — includes Kinguin gallery + YouTube ids. */
 export type StoreProductDetail = StoreProduct & {
   galleryUrls: string[];
   youtubeIds: string[];
-  /** Present when `source === 'plati'` — GTX checkout is not used for these rows */
-  partnerNote?: string;
 };
 
 function discountLabel(priceEur: number, originalEur: number | null | undefined): string {

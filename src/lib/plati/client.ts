@@ -1,138 +1,124 @@
-import { XMLParser } from "fast-xml-parser";
-import type { PlatiGoodsListResult } from "@/lib/plati/types";
-import { mapRowsNodeToItems } from "@/lib/plati/map-to-json";
+/**
+ * Plati public search + Digiseller product JSON (marketplace catalog).
+ *
+ * Search (no API key): `GET https://plati.io/api/search.ashx?query=...&pagenum=&pagesize=&visibleOnly=true&response=json`
+ * — returns `items[]` with `id`, `seller_id`, `price_eur`, `name_eng`, `description_eng`, `image`, `url`, `section_id`, optional `sale_info`.
+ *
+ * Product detail (no token required for public goods): official Digiseller
+ * `GET https://api.digiseller.com/api/products/{product_id}/data?currency=EUR&lang=en-US&format=json&transp=cors`
+ * — optional `seller_id` for cart-related fields; `retval !== 0` when the product is missing.
+ *
+ * Rate limits: not documented in the HTML we mirrored; use modest concurrency and retries on 429 only.
+ */
 
-const PLATI_GOODS_URL = "https://plati.io/xml/goods.asp";
+const DEFAULT_PLATI_SEARCH =
+  process.env.PLATI_SEARCH_URL?.trim() || 'https://plati.io/api/search.ashx';
 
-const MAX_ROWS = 500;
+const DEFAULT_DIGISELLER_BASE =
+  process.env.DIGISELLER_API_BASE_URL?.trim() || 'https://api.digiseller.com';
 
-function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+async function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
-export type FetchPlatiGoodsParams = {
-  guidAgent: string;
-  idSection: string;
-  lang: string;
-  encoding: string;
-  page: number;
-  rows: number;
-  currency: string;
-  order: string;
+export type PlatiSearchItem = {
+  id: number;
+  name?: string;
+  name_eng?: string;
+  price_eur: number;
+  price_usd?: number;
+  section_id?: number;
+  url?: string;
+  description?: string;
+  description_eng?: string;
+  image?: string;
+  seller_id?: number;
+  seller_name?: string;
+  sale_info?: {
+    common_price_eur?: string | number;
+    common_price_usd?: string | number;
+    sale_percent?: string | number;
+  };
 };
 
-export function buildGoodsListRequestXml(p: FetchPlatiGoodsParams): string {
-  const rows = Math.min(Math.max(1, Math.floor(p.rows)), MAX_ROWS);
-  const page = Math.max(1, Math.floor(p.page));
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<digiseller.request>
-  <guid_agent>${escapeXml(p.guidAgent)}</guid_agent>
-  <id_section>${escapeXml(p.idSection)}</id_section>
-  <lang>${escapeXml(p.lang)}</lang>
-  <encoding>${escapeXml(p.encoding)}</encoding>
-  <page>${page}</page>
-  <rows>${rows}</rows>
-  <currency>${escapeXml(p.currency)}</currency>
-  <order>${escapeXml(p.order)}</order>
-</digiseller.request>`;
+type PlatiSearchResponse = {
+  Pagenum?: number;
+  Pagesize?: number;
+  Totalpages?: number;
+  total?: number;
+  items?: PlatiSearchItem[] | null;
+};
+
+export type DigisellerProductData = {
+  retval: number;
+  retdesc?: string;
+  product?: Record<string, unknown>;
+};
+
+function platiSearchUrl(): URL {
+  return new URL(DEFAULT_PLATI_SEARCH);
 }
 
-function getGuidAgent(): string {
-  const g = process.env.PLATI_GUID_AGENT?.trim();
-  if (!g) {
-    throw new Error("PLATI_GUID_AGENT is not set");
+export async function fetchPlatiSearchPage(params: {
+  query: string;
+  page: number;
+  pageSize: number;
+}): Promise<PlatiSearchResponse> {
+  const u = platiSearchUrl();
+  u.searchParams.set('query', params.query);
+  u.searchParams.set('pagenum', String(params.page));
+  u.searchParams.set('pagesize', String(params.pageSize));
+  u.searchParams.set('visibleOnly', 'true');
+  u.searchParams.set('response', 'json');
+
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= 3; attempt++) {
+    const res = await fetch(u.toString(), {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+    if (res.status === 429) {
+      await sleep(400 * Math.pow(2, attempt));
+      lastErr = new Error(`Plati search 429 (retry ${attempt + 1})`);
+      continue;
+    }
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      throw new Error(`Plati search ${res.status}: ${t.slice(0, 200)}`);
+    }
+    return res.json() as Promise<PlatiSearchResponse>;
   }
-  return g;
+  throw lastErr instanceof Error ? lastErr : new Error('Plati search failed after retries');
 }
 
-function responseRoot(parsed: unknown): Record<string, unknown> | null {
-  if (!parsed || typeof parsed !== "object") return null;
-  const o = parsed as Record<string, unknown>;
-  const key = Object.keys(o).find((k) => k.toLowerCase() === "digiseller.response");
-  if (!key) return null;
-  const inner = o[key];
-  if (inner != null && typeof inner === "object" && !Array.isArray(inner)) {
-    return inner as Record<string, unknown>;
+export async function fetchDigisellerProductData(
+  productId: number,
+): Promise<DigisellerProductData> {
+  const base = DEFAULT_DIGISELLER_BASE.replace(/\/$/, '');
+  const u = new URL(`${base}/api/products/${productId}/data`);
+  u.searchParams.set('currency', 'EUR');
+  u.searchParams.set('lang', 'en-US');
+  u.searchParams.set('format', 'json');
+  u.searchParams.set('transp', 'cors');
+  const token = process.env.DIGISELLER_API_TOKEN?.trim();
+  if (token) u.searchParams.set('token', token);
+
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= 3; attempt++) {
+    const res = await fetch(u.toString(), {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+    if (res.status === 429) {
+      await sleep(500 * Math.pow(2, attempt));
+      lastErr = new Error(`Digiseller 429 (retry ${attempt + 1})`);
+      continue;
+    }
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      throw new Error(`Digiseller ${res.status}: ${t.slice(0, 200)}`);
+    }
+    return res.json() as Promise<DigisellerProductData>;
   }
-  return null;
-}
-
-function numField(v: unknown): number {
-  const n = Number(typeof v === "string" ? v.trim() : v);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function strField(v: unknown): string {
-  if (v == null) return "";
-  return String(v).trim();
-}
-
-/**
- * List goods in a Plati/Digiseller section (affiliate XML API).
- * @see https://plati.market/api/?show=xml&f=2
- */
-export async function fetchPlatiGoodsBySection(
-  params: Omit<FetchPlatiGoodsParams, "guidAgent"> & { guidAgent?: string },
-): Promise<PlatiGoodsListResult> {
-  const guidAgent = params.guidAgent?.trim() || getGuidAgent();
-  const body = buildGoodsListRequestXml({
-    guidAgent,
-    idSection: params.idSection,
-    lang: params.lang,
-    encoding: params.encoding,
-    page: params.page,
-    rows: params.rows,
-    currency: params.currency,
-    order: params.order,
-  });
-
-  const res = await fetch(PLATI_GOODS_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/xml; charset=utf-8",
-      Accept: "application/xml, text/xml, */*",
-    },
-    body,
-    cache: "no-store",
-  });
-
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`Plati HTTP ${res.status}: ${text.slice(0, 200)}`);
-  }
-
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: "@_",
-    trimValues: true,
-  });
-  const parsed = parser.parse(text);
-  const root = responseRoot(parsed);
-  if (!root) {
-    throw new Error("Plati: could not parse digiseller.response");
-  }
-
-  const retval = numField(root.retval);
-  const retdesc = strField(root.retdesc);
-  if (retval !== 0) {
-    throw new Error(`Plati retval ${retval}: ${retdesc || "unknown"}`);
-  }
-
-  const items = mapRowsNodeToItems(root.rows);
-
-  return {
-    retval,
-    retdesc,
-    idSection: strField(root.id_section || root.id_catalog),
-    nameSection: strField(root.name_section || root.name_catalog),
-    cntGoods: numField(root.cnt_goods),
-    pages: numField(root.pages),
-    page: numField(root.page),
-    order: strField(root.order),
-    items,
-  };
+  throw lastErr instanceof Error ? lastErr : new Error('Digiseller request failed after retries');
 }

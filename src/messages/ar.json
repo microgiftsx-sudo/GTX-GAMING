@@ -60,8 +60,6 @@
   "Product": {
     "buyNow": "شراء الآن",
     "addToCart": "إضافة للسلة",
-    "openPartner": "فتح على Plati",
-    "partnerNote": "هذا المنتج يُباع عبر شريك Plati / Digiseller. أكمل الدفع من صفحتهم الآمنة — لا يُضاف لسلة GTX.",
     "description": "وصف المنتج",
     "platform": "المنصة",
     "region": "المنطقة",

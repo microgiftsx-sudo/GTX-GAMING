@@ -67,7 +67,7 @@ export default function ProductPage() {
   };
 
   const handleAddToCart = () => {
-    if (!product || product.source === 'plati') return;
+    if (!product) return;
     addItem({
       id: product.id,
       title: product.title,
@@ -78,7 +78,7 @@ export default function ProductPage() {
   };
 
   const handleBuyNow = () => {
-    if (!product || product.source === 'plati') return;
+    if (!product) return;
     addItem({
       id: product.id,
       title: product.title,
@@ -198,39 +198,21 @@ export default function ProductPage() {
               </div>
 
               <div className="space-y-3">
-                {product.source === 'plati' && product.externalBuyUrl ? (
-                  <>
-                    <p className="text-[11px] md:text-xs text-muted leading-relaxed mb-1">
-                      {t('partnerNote')}
-                    </p>
-                    <a
-                      href={product.externalBuyUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-3 py-4 md:py-5 bg-brand-orange text-white font-semibold rounded-xl md:rounded-2xl shadow-lg shadow-brand-orange/25 hover:bg-brand-orange/90 transition-all text-base md:text-lg outline-none uppercase tracking-wider"
-                    >
-                      {t('openPartner')}
-                    </a>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleAddToCart}
-                      className="w-full flex items-center justify-center gap-3 py-4 md:py-5 bg-brand-orange text-white font-semibold rounded-xl md:rounded-2xl shadow-lg shadow-brand-orange/25 hover:bg-brand-orange/90 active:scale-95 transition-all text-base md:text-lg outline-none uppercase tracking-wider"
-                    >
-                      <ShoppingCart size={18} className="md:size-[20px]" />
-                      {t('addToCart')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleBuyNow}
-                      className="w-full block text-center py-3.5 md:py-4 border border-edge text-muted font-semibold rounded-xl md:rounded-2xl hover:bg-white/5 hover:text-foreground transition-all text-xs md:text-sm uppercase tracking-wider outline-none"
-                    >
-                      {t('buyNow')}
-                    </button>
-                  </>
-                )}
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  className="w-full flex items-center justify-center gap-3 py-4 md:py-5 bg-brand-orange text-white font-semibold rounded-xl md:rounded-2xl shadow-lg shadow-brand-orange/25 hover:bg-brand-orange/90 active:scale-95 transition-all text-base md:text-lg outline-none uppercase tracking-wider"
+                >
+                  <ShoppingCart size={18} className="md:size-[20px]" />
+                  {t('addToCart')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBuyNow}
+                  className="w-full block text-center py-3.5 md:py-4 border border-edge text-muted font-semibold rounded-xl md:rounded-2xl hover:bg-white/5 hover:text-foreground transition-all text-xs md:text-sm uppercase tracking-wider outline-none"
+                >
+                  {t('buyNow')}
+                </button>
               </div>
             </motion.div>
 
@@ -249,15 +231,13 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {product.source !== 'plati' ? (
-        <LazyWhenVisible
-          minHeight="min-h-[280px] md:min-h-[240px]"
-          rootMargin="120px 0px"
-          className="max-w-7xl mx-auto px-4"
-        >
-          <ProductRelatedSection current={product} />
-        </LazyWhenVisible>
-      ) : null}
+      <LazyWhenVisible
+        minHeight="min-h-[280px] md:min-h-[240px]"
+        rootMargin="120px 0px"
+        className="max-w-7xl mx-auto px-4"
+      >
+        <ProductRelatedSection current={product} />
+      </LazyWhenVisible>
     </div>
   );
 }

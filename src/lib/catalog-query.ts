@@ -1,190 +1,74 @@
-import { unstable_cache } from "next/cache";
-import { fetchProductsPage } from "@/lib/kinguin/client";
-import type { KinguinProductJson } from "@/lib/kinguin/types";
-import { iqdToEur } from "@/lib/currency";
-import { fromKinguinJson } from "@/lib/store-product";
-import type { StoreProduct } from "@/lib/store-product";
-import { applyVatToStoreProduct } from "@/lib/store-product-vat";
-import { getBaghdadDayKey } from "@/lib/daily-cache-key";
-import { fromPlatiGoodsItem } from "@/lib/plati/to-store-product";
-import { getPlatiSectionFullCached } from "@/lib/plati/section-full-cache";
-import {
-  CATALOG_LISTING_TAG,
-  getCatalogSources,
-  type CatalogSourcesState,
-} from "@/lib/catalog-sources";
+import { unstable_cache } from 'next/cache';
+import { iqdToEur } from '@/lib/currency';
+import type { StoreProduct } from '@/lib/store-product';
+import { applyVatToStoreProduct } from '@/lib/store-product-vat';
+import { getBaghdadDayKey } from '@/lib/daily-cache-key';
+import { searchCatalogUncached } from '@/lib/catalog/facade';
+import { getCatalogProvider } from '@/lib/catalog-provider';
+import { CATALOG_LISTING_CACHE_TAG } from '@/lib/catalog-cache-tags';
+import type { CachedProductsArgs } from '@/lib/catalog-search-args';
 
-function categoriesToTags(categories: string[]): string | undefined {
-  const parts: string[] = [];
-  for (const c of categories) {
-    if (c === "cards") parts.push("prepaid");
-    else if (c === "software") parts.push("software");
-    else if (c === "dlc") parts.push("dlc");
-  }
-  if (parts.length === 0) return undefined;
-  return [...new Set(parts)].join(",");
-}
+export type { CachedProductsArgs } from '@/lib/catalog-search-args';
 
-export type CachedProductsArgs = {
-  page: number;
-  limit: number;
-  q: string;
-  category: string[];
-  platform: string[];
-  minPrice: number;
-  maxPriceRaw: string | null;
-  sort: string;
-  taxRate: number;
-};
-
-function platiEnvReady(): boolean {
-  return Boolean(
-    process.env.PLATI_GUID_AGENT?.trim() && process.env.PLATI_DEFAULT_SECTION_ID?.trim(),
-  );
-}
-
-function wantsPlatiMerge(sources: CatalogSourcesState, args: CachedProductsArgs): boolean {
-  if (!sources.plati || !platiEnvReady()) return false;
-  const q = args.q.trim();
-  if (q.length >= 3) return false;
-  if (args.category.length > 0 || args.platform.length > 0) return false;
-  return true;
-}
-
-function applyIqdRangeFilter(
-  items: StoreProduct[],
-  minPrice: number,
-  maxPriceRaw: string | null,
-): StoreProduct[] {
-  const maxPrice =
-    maxPriceRaw != null && maxPriceRaw !== "" ? Number(maxPriceRaw) : Infinity;
-  if (minPrice <= 0 && !Number.isFinite(maxPrice)) return items;
-  return items.filter((p) => {
-    if (minPrice > 0 && p.price < minPrice) return false;
-    if (Number.isFinite(maxPrice) && maxPrice < Number.MAX_SAFE_INTEGER / 4 && p.price > maxPrice) {
-      return false;
-    }
-    return true;
-  });
-}
-
-function sortCatalogItems(items: StoreProduct[], sort: string): StoreProduct[] {
-  if (sort === "price-low") {
-    return [...items].sort((a, b) => a.price - b.price);
-  }
-  if (sort === "price-high") {
-    return [...items].sort((a, b) => b.price - a.price);
-  }
-  return stabilizeCatalogOrder(items);
-}
-
-export async function fetchProductsUncached(
-  args: CachedProductsArgs,
-  sources: CatalogSourcesState,
-) {
-  const { page, limit, q, category, platform, minPrice, maxPriceRaw, sort, taxRate } = args;
-
-  const maxPrice =
-    maxPriceRaw != null && maxPriceRaw !== "" ? Number(maxPriceRaw) : Infinity;
-
-  const tags = categoriesToTags(category);
-  const platformParam =
-    platform.length > 0 ? platform.map((p) => p.toLowerCase()).join(",") : undefined;
+export async function fetchProductsUncached(args: CachedProductsArgs) {
+  const { taxRate } = args;
 
   const iqdToKinguinBase = (iqd: number) =>
     taxRate > 0 ? iqd / (1 + taxRate / 100) : iqd;
 
-  const minEur = minPrice > 0 ? iqdToEur(iqdToKinguinBase(minPrice)) : undefined;
+  const maxPrice =
+    args.maxPriceRaw != null && args.maxPriceRaw !== '' ? Number(args.maxPriceRaw) : Infinity;
+
+  const minEur = args.minPrice > 0 ? iqdToEur(iqdToKinguinBase(args.minPrice)) : undefined;
   const maxEur =
     Number.isFinite(maxPrice) && maxPrice < Number.MAX_SAFE_INTEGER / 4
       ? iqdToEur(iqdToKinguinBase(maxPrice))
       : undefined;
 
-  const mergePlati = wantsPlatiMerge(sources, args);
+  const enriched: CachedProductsArgs = {
+    ...args,
+    priceFromEur: minEur,
+    priceToEur: maxEur,
+  };
 
-  /** Plati-only catalog (Kinguin disabled) — full section, paginated in memory. */
-  if (!sources.kinguin && sources.plati && platiEnvReady()) {
-    const raw = await getPlatiSectionFullCached();
-    let mapped = raw
-      .map((i) => fromPlatiGoodsItem(i))
-      .map((p) => applyVatToStoreProduct(p, taxRate));
-    mapped = applyIqdRangeFilter(mapped, minPrice, maxPriceRaw);
-    mapped = sortCatalogItems(mapped, sort);
-    const start = (page - 1) * limit;
-    const slice = mapped.slice(start, start + limit);
-    return {
-      items: slice,
-      total: mapped.length,
-      page,
-      limit,
-    };
+  const raw = await searchCatalogUncached(enriched);
+
+  let items = raw.items.map((p) => applyVatToStoreProduct(p, taxRate));
+
+  if (args.sort === 'price-low') {
+    items = [...items].sort((a, b) => a.price - b.price);
+  } else if (args.sort === 'price-high') {
+    items = [...items].sort((a, b) => b.price - a.price);
+  } else {
+    items = stabilizeCatalogOrder(items);
   }
 
-  if (!sources.kinguin) {
-    return { items: [], total: 0, page, limit };
-  }
-
-  const data = await fetchProductsPage({
-    page,
-    limit,
-    sortBy: "updatedAt",
-    sortType: "desc",
-    name: q.length >= 3 ? q : undefined,
-    platform: platformParam,
-    tags,
-    priceFrom: minEur,
-    priceTo: maxEur,
-  });
-
-  let items = (data.results ?? [])
-    .map((row) => fromKinguinJson(row as KinguinProductJson))
-    .map((p) => applyVatToStoreProduct(p, taxRate));
-
-  let platiCount = 0;
-  if (mergePlati && sources.kinguin) {
-    const raw = await getPlatiSectionFullCached();
-    platiCount = raw.length;
-    const start = (page - 1) * limit;
-    const platiSlice = raw
-      .slice(start, start + limit)
-      .map((i) => fromPlatiGoodsItem(i))
-      .map((p) => applyVatToStoreProduct(p, taxRate));
-    items = [...items, ...platiSlice];
-  }
-
-  items = applyIqdRangeFilter(items, minPrice, maxPriceRaw);
-  items = sortCatalogItems(items, sort);
-  items = items.slice(0, limit);
-
-  const total = (data.item_count ?? items.length) + (mergePlati ? platiCount : 0);
+  const total = raw.total ?? items.length;
 
   return {
     items,
     total,
-    page,
-    limit,
+    page: raw.page,
+    limit: raw.limit,
   };
 }
 
-/** Deterministic order for the same API payload (avoids unstable tie order from Kinguin). */
+/** Deterministic order for the same API payload (avoids unstable tie order). */
 export function stabilizeCatalogOrder(items: StoreProduct[]): StoreProduct[] {
-  return [...items].sort((a, b) => {
-    const ka = a.source === "plati" ? Number(a.id.replace("plati-", "")) || 0 : a.kinguinId;
-    const kb = b.source === "plati" ? Number(b.id.replace("plati-", "")) || 0 : b.kinguinId;
-    return kb - ka;
-  });
+  return [...items].sort((a, b) => b.kinguinId - a.kinguinId);
 }
 
 export async function getCachedProductListing(args: CachedProductsArgs) {
-  const sources = await getCatalogSources();
   const dayKey = getBaghdadDayKey();
-  const catKey = [...args.category].sort().join("|");
-  const platKey = [...args.platform].sort().join("|");
+  const catKey = [...args.category].sort().join('|');
+  const platKey = [...args.platform].sort().join('|');
+  const provider = await getCatalogProvider();
 
   return unstable_cache(
-    async () => fetchProductsUncached(args, sources),
+    async () => fetchProductsUncached(args),
     [
-      "kinguin-products-v2",
+      CATALOG_LISTING_CACHE_TAG,
+      provider,
       dayKey,
       String(args.taxRate),
       String(args.page),
@@ -194,10 +78,8 @@ export async function getCachedProductListing(args: CachedProductsArgs) {
       catKey,
       platKey,
       String(args.minPrice),
-      args.maxPriceRaw === null ? "" : String(args.maxPriceRaw),
-      `sk:${sources.kinguin}`,
-      `sp:${sources.plati}`,
+      args.maxPriceRaw === null ? '' : String(args.maxPriceRaw),
     ],
-    { revalidate: 86400, tags: [CATALOG_LISTING_TAG] },
+    { revalidate: 86400, tags: [CATALOG_LISTING_CACHE_TAG] },
   )();
 }
