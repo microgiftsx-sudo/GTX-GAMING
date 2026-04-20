@@ -34,29 +34,6 @@
       "EUR": "€ EUR"
     }
   },
-  "HomeFeedAdmin": {
-    "title": "Home feed",
-    "subtitle": "Set Kinguin product IDs for the hero carousel and the trending strip. Empty = default catalog.",
-    "secretLabel": "Admin secret",
-    "secretHint": "Set HOME_FEED_ADMIN_SECRET in .env",
-    "load": "Load current",
-    "save": "Save",
-    "heroHeading": "Hero carousel",
-    "trendingHeading": "Trending",
-    "maxHero": "Up to {max} IDs",
-    "maxTrending": "Up to {max} IDs",
-    "idsPlaceholder": "One ID per line or space/comma separated — e.g. 12345 67890",
-    "configuredIds": "Saved IDs",
-    "preview": "Preview (resolved)",
-    "noPreview": "No products loaded yet. Click Load current.",
-    "storeId": "Store ID",
-    "savedOk": "Saved.",
-    "loadFailed": "Could not load.",
-    "saveFailed": "Could not save.",
-    "noSecret": "Configure HOME_FEED_ADMIN_SECRET on the server.",
-    "unauthorized": "Invalid secret.",
-    "cacheNote": "Cache TTL: {seconds}s (home hero + trending — change via Telegram /hero_ttl)"
-  },
   "Cart": {
     "title": "Shopping Cart",
     "empty": "is empty",

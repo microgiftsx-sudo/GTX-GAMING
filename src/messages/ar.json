@@ -34,29 +34,6 @@
       "EUR": "€ EUR"
     }
   },
-  "HomeFeedAdmin": {
-    "title": "الصفحة الرئيسية — Hero وترند",
-    "subtitle": "حدّد معرّفات منتجات Kinguin للبانر والقسم الرائج. إذا تركتها فارغة يُستخدم الكتالوج الافتراضي.",
-    "secretLabel": "كلمة سر الإدارة",
-    "secretHint": "ضع HOME_FEED_ADMIN_SECRET في ملف .env",
-    "load": "تحميل الحالي",
-    "save": "حفظ",
-    "heroHeading": "بانر Hero",
-    "trendingHeading": "الأكثر رواجاً",
-    "maxHero": "حتى {max} معرّفات",
-    "maxTrending": "حتى {max} معرّفات",
-    "idsPlaceholder": "معرّف في كل سطر أو مفصول بمسافة/فاصلة — مثال: 12345 67890",
-    "configuredIds": "المعرّفات المحفوظة",
-    "preview": "معاينة (كما تظهر)",
-    "noPreview": "لا توجد بيانات بعد. اضغط تحميل الحالي.",
-    "storeId": "معرّف المتجر",
-    "savedOk": "تم الحفظ.",
-    "loadFailed": "فشل التحميل.",
-    "saveFailed": "فشل الحفظ.",
-    "noSecret": "لم يُضبط HOME_FEED_ADMIN_SECRET على الخادم.",
-    "unauthorized": "كلمة السر غير صحيحة.",
-    "cacheNote": "مدة الكاش: {seconds} ثانية (البانر والترند — التعديل عبر تيليجرام /hero_ttl)"
-  },
   "Cart": {
     "title": "سلة",
     "empty": "فارغة",
