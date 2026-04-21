@@ -124,7 +124,7 @@ export async function createOrder(
     viewerToken: createViewerToken(),
     createdAt: now,
     updatedAt: now,
-    status: 'pending',
+    status: 'processing',
   };
   const orders = await listOrders();
   orders.unshift(order);

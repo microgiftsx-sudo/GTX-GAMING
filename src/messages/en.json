@@ -57,7 +57,7 @@
   },
   "OrderFlow": {
     "title": "Your order was received",
-    "subtitle": "You can view order status now or continue shopping.",
+    "subtitle": "Your order is currently processing. You can track it now or continue shopping.",
     "viewOrder": "View order",
     "continueShopping": "Continue shopping",
     "statusPageTitle": "Order status",
@@ -66,7 +66,7 @@
     "statusSubtitle": "This is the latest approved status for your order.",
     "orderNumber": "Order number",
     "orderStatus": "Status",
-    "deliveryDetails": "Delivery details",
+    "deliveryDetails": "Product details",
     "statusPending": "Pending",
     "statusProcessing": "Processing",
     "statusCompleted": "Delivered",

@@ -57,7 +57,7 @@
   },
   "OrderFlow": {
     "title": "تم استلام طلبك",
-    "subtitle": "يمكنك متابعة حالة الطلب الآن أو متابعة الشراء.",
+    "subtitle": "طلبكم قيد التنفيذ حالياً. يمكنك متابعة حالته الآن أو متابعة الشراء.",
     "viewOrder": "رؤية الطلب",
     "continueShopping": "متابعة الشراء",
     "statusPageTitle": "حالة الطلب",
@@ -66,7 +66,7 @@
     "statusSubtitle": "هذه آخر حالة معتمدة لطلبك.",
     "orderNumber": "رقم الطلب",
     "orderStatus": "الحالة",
-    "deliveryDetails": "تفاصيل التسليم",
+    "deliveryDetails": "تفاصيل المنتج",
     "statusPending": "قيد المراجعة",
     "statusProcessing": "قيد المعالجة",
     "statusCompleted": "تم التسليم",

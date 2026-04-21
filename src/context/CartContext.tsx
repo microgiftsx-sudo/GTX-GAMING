@@ -4,6 +4,9 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { EUR_PER_IQD } from '@/lib/currency';
 import { netFromGrossIqd } from '@/lib/tax-math';
 import { discountIqdFromPercent, normalizeCouponCode } from '@/lib/coupon-math';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Link } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
 
 export type AppliedCoupon = { code: string; percentOff: number };
 
@@ -19,7 +22,7 @@ export interface CartItem {
 
 interface CartContextType {
   cart: CartItem[];
-  addItem: (item: CartItem) => void;
+  addItem: (item: CartItem, options?: { showFeedback?: boolean }) => void;
   removeItem: (id: string | number) => void;
   updateQuantity: (id: string | number, quantity: number) => void;
   clearCart: () => void;
@@ -62,11 +65,13 @@ const SYMBOLS: Record<string, string> = {
 };
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const tp = useTranslations('Product');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [currency, setCurrency] = useState('IQD');
   const [isLoaded, setIsLoaded] = useState(false);
   const [taxRatePercent, setTaxRatePercent] = useState(0);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const [cartAddedOpen, setCartAddedOpen] = useState(false);
 
   // Load from localStorage
   useEffect(() => {
@@ -143,7 +148,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const lineKey = (i: CartItem) => i.cartKey ?? String(i.id);
 
-  const addItem = (item: CartItem) => {
+  const addItem = (item: CartItem, options?: { showFeedback?: boolean }) => {
     setCart((prev) => {
       const key = lineKey(item);
       const existing = prev.find((i) => lineKey(i) === key);
@@ -152,6 +157,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { ...item, quantity: 1 }];
     });
+    if (options?.showFeedback !== false) {
+      setCartAddedOpen(true);
+    }
   };
 
   const removeItem = (lineId: string | number) => {
@@ -256,6 +264,54 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       formatDisplayIqd,
     }}>
       {children}
+      <AnimatePresence>
+        {cartAddedOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-end justify-center bg-black/60 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:px-4"
+            onClick={() => setCartAddedOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-md rounded-[30px] border border-edge bg-surface-elevated p-6 text-start shadow-[0_24px_80px_rgba(0,0,0,0.55)] ring-1 ring-white/[0.04] sm:p-7"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="rounded-2xl border border-edge bg-surface px-4 py-3">
+                <h3 className="text-lg font-bold text-foreground">{tp('addedToCartTitle')}</h3>
+                <p className="mt-1 text-sm text-muted">{tp('addedToCartHint')}</p>
+              </div>
+              <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Link
+                  href="/cart"
+                  onClick={() => setCartAddedOpen(false)}
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-brand-orange/40 bg-brand-orange/10 px-4 py-2 text-sm font-semibold text-brand-orange transition-colors hover:bg-brand-orange/20"
+                >
+                  {tp('goToCart')}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setCartAddedOpen(false)}
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-edge bg-surface px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-white/5"
+                >
+                  {tp('continueShopping')}
+                </button>
+              </div>
+              <Link
+                href="/checkout"
+                onClick={() => setCartAddedOpen(false)}
+                className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-brand-blue/35 bg-brand-blue/10 px-4 py-2 text-sm font-semibold text-brand-blue transition-colors hover:bg-brand-blue/20"
+              >
+                {tp('checkoutNow')}
+              </Link>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </CartContext.Provider>
   );
 }

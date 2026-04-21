@@ -19,6 +19,11 @@ import {
   type PaymentEditField,
 } from '@/lib/payment-edit-state';
 import {
+  clearPendingOrderDelivery,
+  getPendingOrderDelivery,
+  setPendingOrderDelivery,
+} from '@/lib/order-delivery-state';
+import {
   applyTaxToBaseIqd,
   getTaxRatePercent,
   setTaxRatePercent,
@@ -129,7 +134,7 @@ function orderKeyboard(order: OrderRecord) {
   }
   rows.push(
     [
-      { text: 'Approve', callback_data: `order:set:${order.id}:completed` },
+      { text: 'Approve + details', callback_data: `order:set:${order.id}:completed` },
       { text: 'Processing', callback_data: `order:set:${order.id}:processing` },
     ],
     [
@@ -429,6 +434,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (text === '/start') {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       await sendText(
         chatId,
         [
@@ -453,11 +459,13 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     }
     if (text === '/orders') {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       await sendRecentOrders(chatId);
       return;
     }
     if (text === '/payments') {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       await sendPaymentMethods(chatId);
       return;
     }
@@ -466,6 +474,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/catalog' || text.startsWith('/catalog ')) {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const parts = text.trim().split(/\s+/);
       if (parts.length === 1) {
         const p = await getCatalogProvider();
@@ -493,6 +502,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/searchtranslate' || text.startsWith('/searchtranslate ')) {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const parts = text.trim().split(/\s+/);
       if (parts.length === 1) {
         const s = await getSearchTranslateSettings();
@@ -563,6 +573,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/tax' || text.startsWith('/tax ')) {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const parts = text.split(/\s+/);
       if (parts.length === 1) {
         const r = await getTaxRatePercent();
@@ -587,6 +598,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/calc' || text.startsWith('/calc ')) {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const parts = text.split(/\s+/);
       if (parts.length < 2) {
         await sendText(
@@ -621,6 +633,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/gencoupon' || text.startsWith('/gencoupon ')) {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const parts = text.split(/\s+/);
       if (parts.length < 2) {
         await sendText(
@@ -681,6 +694,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/coupons') {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const list = await listCoupons(20);
       if (list.length === 0) {
         await sendText(chatId, 'No coupons yet. Use /gencoupon');
@@ -699,6 +713,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/hero_ttl' || text.startsWith('/hero_ttl ')) {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const parts = text.trim().split(/\s+/);
       if (parts.length === 1) {
         const sec = await getHeroCacheTtlSeconds();
@@ -734,6 +749,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/hero' || text.startsWith('/hero ')) {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const parts = text.trim().split(/\s+/);
       if (parts.length === 1) {
         const ids = await getHeroProductIds();
@@ -776,6 +792,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/trending' || text.startsWith('/trending ')) {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const parts = text.trim().split(/\s+/);
       if (parts.length === 1) {
         const ids = await getTrendingProductIds();
@@ -816,6 +833,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/coupon_off' || text.startsWith('/coupon_off ')) {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const parts = text.split(/\s+/);
       if (parts.length < 2) {
         await sendText(chatId, 'Usage: /coupon_off CODE');
@@ -833,6 +851,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (cmdToken === '/deliver' || text.startsWith('/deliver ')) {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       const [, second, ...rest] = text.trim().split(/\s+/);
       const orderId = (second ?? '').trim();
       const details = rest.join(' ').trim();
@@ -875,7 +894,50 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (text === '/cancel') {
       await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
       await sendText(chatId, 'Cancelled.');
+      return;
+    }
+
+    const pendingDelivery = await getPendingOrderDelivery(userId);
+    if (pendingDelivery) {
+      const details = text.trim();
+      if (!details) {
+        await sendText(chatId, 'Delivery details are empty. Send text or /cancel.');
+        return;
+      }
+      const delivered = await markOrderDelivered(pendingDelivery.orderId, details);
+      if (!delivered) {
+        await clearPendingOrderDelivery(userId);
+        await sendText(chatId, 'Order not found. Cancelled.');
+        return;
+      }
+      await clearPendingOrderDelivery(userId);
+      try {
+        await sendOrderDeliveredEmail(delivered, details);
+        await markOrderDeliveryNotified(delivered.id);
+        await sendText(
+          chatId,
+          [
+            `✅ Delivered & emailed: ${delivered.id}`,
+            `Email: ${delivered.email}`,
+            `Public URL: ${orderPublicUrl(delivered)}`,
+          ].join('\n'),
+          orderKeyboard(delivered),
+        );
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await sendText(
+          chatId,
+          [
+            `Order marked completed, but email failed.`,
+            `Order: ${delivered.id}`,
+            `Error: ${msg}`,
+            `Public URL: ${orderPublicUrl(delivered)}`,
+          ].join('\n'),
+          orderKeyboard(delivered),
+        );
+      }
       return;
     }
 
@@ -1036,6 +1098,24 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   if (cb.data.startsWith('order:set:')) {
     const [, , orderId, statusRaw] = cb.data.split(':');
     const status = statusRaw as OrderStatus;
+    if (status === 'completed') {
+      const existing = await getOrder(orderId);
+      if (!existing) {
+        await answerCallbackQuery(cb.id, 'Order not found');
+        return;
+      }
+      await setPendingOrderDelivery(userId, orderId);
+      await answerCallbackQuery(cb.id, `Send delivery details for ${orderId}`);
+      await sendText(
+        chatId,
+        [
+          `📝 Approve ${orderId}`,
+          'Now send product/delivery details in your next message.',
+          'Tip: use /cancel to abort.',
+        ].join('\n'),
+      );
+      return;
+    }
     const order = await updateOrderStatus(orderId, status);
     if (!order) {
       await answerCallbackQuery(cb.id, 'Order not found');

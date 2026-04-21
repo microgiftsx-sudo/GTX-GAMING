@@ -62,8 +62,10 @@ export default async function OrderStatusPage({
           </div>
         ) : (
           <>
-            <h1 className="text-xl font-bold text-foreground sm:text-2xl">{t('statusTitle')}</h1>
-            <p className="mt-1 text-sm text-muted">{t('statusSubtitle')}</p>
+            <div className="rounded-2xl border border-edge bg-surface px-4 py-4">
+              <h1 className="text-xl font-bold text-foreground sm:text-2xl">{t('statusTitle')}</h1>
+              <p className="mt-1 text-sm text-muted">{t('statusSubtitle')}</p>
+            </div>
 
             <div className="mt-5 rounded-2xl border border-edge bg-surface-elevated p-4">
               <p className="text-xs text-faint">{t('orderNumber')}</p>
