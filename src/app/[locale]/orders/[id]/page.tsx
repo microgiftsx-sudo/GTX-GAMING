@@ -46,8 +46,6 @@ export default async function OrderStatusPage({
   const t = await getTranslations({ locale, namespace: 'OrderFlow' });
 
   const allowed = Boolean(order && token && token === order.viewerToken);
-  const detailsHint =
-    order?.status === 'processing' ? t('deliveryDetailsPendingHint') : t('deliveryDetailsButtonHint');
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
@@ -79,16 +77,12 @@ export default async function OrderStatusPage({
               <p className="text-sm font-semibold text-brand-orange">{statusText(order.status, t)}</p>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-edge bg-surface-elevated p-4">
-              <p className="text-xs text-faint">{t('deliveryDetails')}</p>
-              <p className="mt-1 text-sm text-muted">{detailsHint}</p>
-            </div>
-
             <OrderProductDetailsDialog
               status={order.status}
               itemTitles={order.items.map((item) => item.title)}
               productDetails={order.productDeliveryDetails}
               fallbackDetails={order.deliveryDetails}
+              processingHint={t('processingDetailsHint')}
               buttonLabel={t('viewProductDetails')}
               titleLabel={t('productDetailsTitle')}
               productLabel={t('productLabel')}

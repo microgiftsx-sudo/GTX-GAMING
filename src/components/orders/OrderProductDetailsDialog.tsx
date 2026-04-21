@@ -7,6 +7,7 @@ type Props = {
   itemTitles: string[];
   productDetails?: string[];
   fallbackDetails?: string;
+  processingHint: string;
   buttonLabel: string;
   titleLabel: string;
   productLabel: string;
@@ -18,6 +19,7 @@ export function OrderProductDetailsDialog({
   itemTitles,
   productDetails,
   fallbackDetails,
+  processingHint,
   buttonLabel,
   titleLabel,
   productLabel,
@@ -87,7 +89,7 @@ export function OrderProductDetailsDialog({
             <div className="rounded-2xl border border-edge bg-surface-elevated p-4">
               <p className="text-sm font-semibold text-foreground">{itemTitles[selected] ?? '-'}</p>
               <p className="mt-2 whitespace-pre-line text-sm text-muted">
-                {detailsByItem[selected] || '-'}
+                {status === 'processing' ? processingHint : detailsByItem[selected] || '-'}
               </p>
             </div>
           </div>
