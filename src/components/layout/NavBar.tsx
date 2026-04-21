@@ -3,14 +3,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/routing";
-import { ChevronDown, Zap, Monitor, Laptop, Gift, Crown } from "lucide-react";
+import { ChevronDown, Zap, Monitor, Laptop, Gift, Crown, UserCircle, Gamepad2 } from "lucide-react";
 
 const CATEGORIES = [
   { name: "games", key: "games", icon: <Zap size={16} /> },
   { name: "cards", key: "cards", icon: <Gift size={16} /> },
+  { name: "steam", key: "steam", icon: <Gamepad2 size={16} /> },
   { name: "psn", key: "psn", icon: <Crown size={16} /> },
   { name: "xbox", key: "xbox", icon: <Monitor size={16} /> },
   { name: "software", key: "software", icon: <Laptop size={16} /> },
+  { name: "accounts", key: "accounts", icon: <UserCircle size={16} /> },
 ] as const;
 
 const FLYOUT_LINK_CLASS =
@@ -24,6 +26,10 @@ function categorySearchHref(key: (typeof CATEGORIES)[number]["key"]): string {
       return "/search?category=cards";
     case "software":
       return "/search?category=software";
+    case "accounts":
+      return "/search?category=accounts";
+    case "steam":
+      return "/search?platform=steam";
     case "psn":
       return "/search?platform=psn";
     case "xbox":

@@ -71,6 +71,7 @@ export default function Footer() {
                 <li><Link href="/search?category=games" className={linkClass}>{t('games')}</Link></li>
                 <li><Link href="/search?category=cards" className={linkClass}>{t('cards')}</Link></li>
                 <li><Link href="/search?category=software" className={linkClass}>{t('software')}</Link></li>
+                <li><Link href="/search?category=accounts" className={linkClass}>{t('accounts')}</Link></li>
               </ul>
             </div>
 

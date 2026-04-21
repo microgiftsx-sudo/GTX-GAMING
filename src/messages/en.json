@@ -1,6 +1,7 @@
 {
   "Header": {
     "search": "Search for games, gift cards, keys...",
+    "clearSearch": "Clear search",
     "trending": "Trending Now",
     "cart": "Cart",
     "videoGames": "Video Games",
@@ -16,9 +17,11 @@
     "categories": {
       "games": "Video Games",
       "cards": "Gift Cards",
+      "steam": "Steam",
       "psn": "PlayStation",
       "xbox": "Xbox",
-      "software": "Software"
+      "software": "Software",
+      "accounts": "Accounts"
     },
     "latest": "Latest Releases",
     "top": "Top Sellers",
@@ -32,7 +35,23 @@
       "IQD": "IQD",
       "USD": "$ USD",
       "EUR": "€ EUR"
-    }
+    },
+    "authLogin": "Account",
+    "authSignOut": "Sign out"
+  },
+  "Auth": {
+    "pageTitle": "Sign in",
+    "pageDescription": "Sign in or create an account with Google and Cloudflare Turnstile protection.",
+    "title": "Sign in or register",
+    "subtitle": "One Google sign-in creates your account on first visit or signs you in if you already used it.",
+    "googleButton": "Continue with Google",
+    "googleLegal": "By continuing you agree to Google’s account and privacy policies for OAuth.",
+    "backHome": "Back to home",
+    "turnstileHint": "Complete the check below before continuing with Google.",
+    "turnstileFailed": "Security check failed. Please try again.",
+    "turnstileWidgetError": "Could not load the security check. Refresh the page.",
+    "signInError": "Could not start sign-in. Try again later.",
+    "providerMissing": "Google sign-in is not configured yet. Set AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET on the server."
   },
   "Cart": {
     "title": "Shopping Cart",
@@ -60,6 +79,11 @@
   "Product": {
     "buyNow": "Buy Now",
     "addToCart": "Add to Cart",
+    "addedToCartTitle": "Added to your cart",
+    "addedToCartHint": "What would you like to do next?",
+    "goToCart": "View cart",
+    "continueShopping": "Keep shopping",
+    "checkoutNow": "Go to checkout",
     "description": "Product Description",
     "platform": "Platform",
     "region": "Region",
@@ -150,6 +174,7 @@
     "games": "Video Games",
     "cards": "Gift Cards",
     "software": "Software",
+    "accounts": "Accounts",
     "contact": "Contact Us",
     "faq": "FAQ",
     "guarantee": "GTX Guarantee",
@@ -201,7 +226,8 @@
       "xbox": "Xbox",
       "pc": "Computer (PC)",
       "sport": "Sport",
-      "action": "Action"
+      "action": "Action",
+      "accounts": "Accounts"
     },
     "methods": {
       "zain": "Zain Cash",
@@ -245,6 +271,8 @@
     "all": "All",
     "loadMore": "Show more",
     "loadingMore": "Loading…",
-    "showingLoaded": "Showing {loaded} of {total} results"
+    "showingLoaded": "Showing {loaded} of {total} results",
+    "didYouMean": "Did you mean",
+    "loadingResults": "Loading results…"
   }
 }

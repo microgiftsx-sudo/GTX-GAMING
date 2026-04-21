@@ -34,7 +34,9 @@ export async function GET(req: NextRequest) {
 
     const payload = await getCachedProductListing(args);
 
-    return NextResponse.json(payload);
+    return NextResponse.json(payload, {
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ error: msg }, { status: 500 });

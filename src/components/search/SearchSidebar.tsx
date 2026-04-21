@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Checkbox from '@/components/ui/Checkbox';
 
@@ -96,10 +96,10 @@ export default function SearchSidebar() {
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-sm font-bold uppercase tracking-wider text-brand-orange">{t('filters')}</h2>
         <button
+          type="button"
           onClick={clearFilters}
-          className="text-[10px] font-medium text-muted hover:text-foreground transition-colors uppercase tracking-wider flex items-center gap-1"
+          className="text-[10px] font-medium text-muted hover:text-foreground transition-colors uppercase tracking-wider underline-offset-2 hover:underline"
         >
-          <X size={12} />
           {t('clearAll')}
         </button>
       </div>
@@ -111,7 +111,7 @@ export default function SearchSidebar() {
           isOpen={openSections.type}
           onToggle={() => toggleSection('type')}
         >
-          {['games', 'cards', 'software', 'dlc'].map(item => (
+          {['games', 'cards', 'software', 'dlc', 'accounts'].map(item => (
             <Checkbox
               key={item}
               checked={isChecked('category', item)}

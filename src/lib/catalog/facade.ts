@@ -9,6 +9,7 @@ import {
 } from '@/lib/plati/mapStoreProduct';
 import { extractGalleryUrls, extractYoutubeIds } from '@/lib/kinguin/media';
 import { kinguinPriceVariantsFromJson } from '@/lib/kinguin/priceVariants';
+import { kinguinPlatformQueryFromStoreSlugs } from '@/lib/kinguin/platformFilter';
 import type { CachedProductsArgs } from '@/lib/catalog-search-args';
 import { netFromGrossIqd } from '@/lib/tax';
 
@@ -75,8 +76,7 @@ export async function searchCatalogUncached(
   const provider = await getCatalogProvider();
   if (provider === 'kinguin') {
     const tags = categoriesToTags(args.category);
-    const platformParam =
-      args.platform.length > 0 ? args.platform.map((p) => p.toLowerCase()).join(',') : undefined;
+    const platformParam = kinguinPlatformQueryFromStoreSlugs(args.platform);
 
     const data = await fetchProductsPage({
       page: args.page,
@@ -96,10 +96,16 @@ export async function searchCatalogUncached(
   }
 
   const query = platiSearchQuery(args.q);
+  /** Accounts browse drops many rows in `catalog-query`; pull a wider Plati page first. */
+  const platiPageSize =
+    args.accountsBrowse === true
+      ? Math.min(100, Math.max(args.limit * 2, 48))
+      : args.limit;
+
   const raw = await fetchPlatiSearchPage({
     query,
     page: args.page,
-    pageSize: args.limit,
+    pageSize: platiPageSize,
   });
 
   const items = applyPlatiFilters((raw.items ?? []).map(storeProductFromPlatiSearchItem), args);

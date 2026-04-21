@@ -3,10 +3,18 @@ import type { KinguinProductJson } from './types';
 const BASE = 'https://gateway.kinguin.net/esa/api/v1';
 
 export function normalizePlatformSlug(platform: string | undefined): 'steam' | 'psn' | 'xbox' | 'pc' {
-  const s = (platform ?? '').toLowerCase();
+  const raw = platform ?? '';
+  const s = raw.toLowerCase();
   if (s.includes('steam')) return 'steam';
   if (s.includes('playstation') || s.includes('psn') || s.includes('ps4') || s.includes('ps5')) return 'psn';
-  if (s.includes('xbox')) return 'xbox';
+  // Xbox: Latin + common Arabic storefront spellings (Plati titles often omit “xbox”).
+  if (
+    s.includes('xbox') ||
+    /\bxsx\b|\bxss\b/.test(s) ||
+    /إكس\s*بوكس|اكس\s*بوكس|إكسبوكس|اكسبوكس/i.test(raw)
+  ) {
+    return 'xbox';
+  }
   return 'pc';
 }
 

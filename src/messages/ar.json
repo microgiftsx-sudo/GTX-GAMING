@@ -1,6 +1,7 @@
 {
   "Header": {
     "search": "ابحث عن الألعاب، بطاقات الهدايا، المفاتيح...",
+    "clearSearch": "مسح البحث",
     "trending": "البحث الرائج",
     "cart": "السلة",
     "videoGames": "ألعاب الفيديو",
@@ -16,9 +17,11 @@
     "categories": {
       "games": "ألعاب الفيديو",
       "cards": "بطاقات الهدايا",
+      "steam": "ستيم",
       "psn": "بلاي ستيشن",
       "xbox": "إكس بوكس",
-      "software": "البرمجيات"
+      "software": "البرمجيات",
+      "accounts": "حسابات"
     },
     "latest": "أحدث الإصدارات",
     "top": "الأكثر مبيعاً",
@@ -32,7 +35,23 @@
       "IQD": "د.ع",
       "USD": "$ USD",
       "EUR": "€ EUR"
-    }
+    },
+    "authLogin": "حسابي",
+    "authSignOut": "تسجيل الخروج"
+  },
+  "Auth": {
+    "pageTitle": "تسجيل الدخول",
+    "pageDescription": "تسجيل الدخول أو إنشاء حساب عبر Google مع حماية Turnstile.",
+    "title": "تسجيل الدخول أو إنشاء حساب",
+    "subtitle": "نفس الخطوة تنشئ حساباً جديداً أو تربط حساباً موجوداً عند أول دخول بـ Google.",
+    "googleButton": "المتابعة مع Google",
+    "googleLegal": "بالمتابعة فإنك توافق على سياسات Google لحسابك وخصوصية البيانات.",
+    "backHome": "العودة للرئيسية",
+    "turnstileHint": "أكمل التحقق أدناه قبل المتابعة مع Google.",
+    "turnstileFailed": "فشل التحقق من الحماية. حاول مرة أخرى.",
+    "turnstileWidgetError": "تعذر تحميل التحقق. أعد تحميل الصفحة.",
+    "signInError": "تعذر بدء تسجيل الدخول. حاول لاحقاً.",
+    "providerMissing": "لم يُضبط تسجيل الدخول بـ Google بعد. أضف AUTH_GOOGLE_ID و AUTH_GOOGLE_SECRET في إعدادات الخادم."
   },
   "Cart": {
     "title": "سلة",
@@ -60,6 +79,11 @@
   "Product": {
     "buyNow": "شراء الآن",
     "addToCart": "إضافة للسلة",
+    "addedToCartTitle": "تمت الإضافة إلى السلة",
+    "addedToCartHint": "ماذا تريد أن تفعل الآن؟",
+    "goToCart": "عرض السلة",
+    "continueShopping": "متابعة التسوق",
+    "checkoutNow": "الانتقال إلى الدفع",
     "description": "وصف المنتج",
     "platform": "المنصة",
     "region": "المنطقة",
@@ -150,6 +174,7 @@
     "games": "ألعاب الفيديو",
     "cards": "بطاقات الهدايا",
     "software": "البرمجيات",
+    "accounts": "حسابات",
     "contact": "اتصل بنا",
     "faq": "الأسئلة الشائعة",
     "guarantee": "ضمان GTX",
@@ -201,7 +226,8 @@
       "xbox": "إكس بوكس (Xbox)",
       "pc": "كمبيوتر (PC)",
       "sport": "رياضة",
-      "action": "أكشن"
+      "action": "أكشن",
+      "accounts": "حسابات"
     },
     "methods": {
       "zain": "زين كاش",
@@ -245,6 +271,8 @@
     "all": "الكل",
     "loadMore": "عرض المزيد",
     "loadingMore": "جاري التحميل…",
-    "showingLoaded": "عرض {loaded} من أصل {total} نتيجة"
+    "showingLoaded": "عرض {loaded} من أصل {total} نتيجة",
+    "didYouMean": "هل تقصد",
+    "loadingResults": "جاري تحميل النتائج…"
   }
 }

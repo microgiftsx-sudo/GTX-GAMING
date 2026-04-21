@@ -54,7 +54,7 @@ export type FetchProductsParams = {
   sortType?: 'asc' | 'desc';
   /** Min length 3 per Kinguin API; caller should omit if shorter. */
   name?: string;
-  /** Comma-separated platform slugs (e.g. steam,pc). */
+  /** Comma-separated Kinguin product `platform` names (e.g. Steam,PlayStation 4). */
   platform?: string;
   /** Comma-separated tags (e.g. prepaid,software). */
   tags?: string;

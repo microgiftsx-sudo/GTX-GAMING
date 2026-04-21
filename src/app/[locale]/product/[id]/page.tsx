@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Globe, ChevronRight, ShoppingCart } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useParams, notFound } from 'next/navigation';
@@ -102,7 +102,17 @@ export default function ProductPage() {
   const [platiSel, setPlatiSel] = useState<Record<number, number>>({});
   const [kinguinVarId, setKinguinVarId] = useState<string | null>(null);
   const [prefetchTick, setPrefetchTick] = useState(0);
+  const [cartAddedOpen, setCartAddedOpen] = useState(false);
   const priceCacheRef = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    if (!cartAddedOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCartAddedOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [cartAddedOpen]);
 
   useEffect(() => {
     if (!id) return;
@@ -286,6 +296,7 @@ export default function ProductPage() {
       image: product.image,
       quantity: 1,
     });
+    setCartAddedOpen(true);
   };
 
   const handleBuyNow = () => {
@@ -516,6 +527,67 @@ export default function ProductPage() {
       >
         <ProductRelatedSection current={product} />
       </LazyWhenVisible>
+
+      <AnimatePresence>
+        {cartAddedOpen && (
+          <motion.div
+            key="cart-added-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/65 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center sm:p-6"
+            role="presentation"
+            onClick={() => setCartAddedOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              transition={{ duration: 0.2 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="product-cart-added-title"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl border border-edge bg-surface-elevated p-5 shadow-2xl ring-1 ring-white/[0.06] sm:p-6"
+            >
+              <h2
+                id="product-cart-added-title"
+                className="text-lg font-bold tracking-tight text-foreground sm:text-xl"
+              >
+                {t('addedToCartTitle')}
+              </h2>
+              <p className="mt-2 text-sm text-muted">{t('addedToCartHint')}</p>
+              <div className="mt-6 flex flex-col gap-2.5">
+                <Link
+                  href="/cart"
+                  onClick={() => setCartAddedOpen(false)}
+                  className="flex min-h-12 w-full items-center justify-center rounded-xl bg-brand-orange px-4 py-3 text-center text-sm font-semibold uppercase tracking-wider text-white shadow-lg shadow-brand-orange/25 transition-colors hover:bg-brand-orange/90 touch-manipulation"
+                >
+                  {t('goToCart')}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setCartAddedOpen(false)}
+                  className="min-h-12 w-full rounded-xl border border-edge px-4 py-3 text-sm font-semibold uppercase tracking-wider text-foreground transition-colors hover:bg-white/5 touch-manipulation"
+                >
+                  {t('continueShopping')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCartAddedOpen(false);
+                    router.push('/checkout');
+                  }}
+                  className="min-h-11 w-full pt-1 text-center text-xs font-semibold uppercase tracking-wider text-brand-orange underline decoration-brand-orange/50 underline-offset-4 hover:text-brand-orange/90 touch-manipulation"
+                >
+                  {t('checkoutNow')}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

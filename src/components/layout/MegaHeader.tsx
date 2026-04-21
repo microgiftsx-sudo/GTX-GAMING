@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, Globe, ShoppingCart, ChevronDown, X, TrendingUp } from 'lucide-react';
+import { Search, Globe, ShoppingCart, ChevronDown, X, TrendingUp, User, LogOut } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/context/CartContext';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
@@ -26,7 +27,9 @@ export default function MegaHeader() {
   const [searchQuery, setSearchQuery] = useState('');
   const [langDropdown, setLangDropdown] = useState(false);
   const [currDropdown, setCurrDropdown] = useState(false);
+  const [authDropdown, setAuthDropdown] = useState(false);
   const [headerHits, setHeaderHits] = useState<StoreProduct[]>([]);
+  const { data: session, status: sessionStatus } = useSession();
 
   useEffect(() => {
     const q = searchQuery.trim();
@@ -95,6 +98,7 @@ export default function MegaHeader() {
               onClick={() => {
                 setLangDropdown(!langDropdown);
                 setCurrDropdown(false);
+                setAuthDropdown(false);
               }}
               className={`${controlBtnBase} ${
                 langDropdown
@@ -148,6 +152,7 @@ export default function MegaHeader() {
               onClick={() => {
                 setCurrDropdown(!currDropdown);
                 setLangDropdown(false);
+                setAuthDropdown(false);
               }}
               className={`${controlBtnBase} ${
                 currDropdown
@@ -191,6 +196,82 @@ export default function MegaHeader() {
             </AnimatePresence>
           </div>
 
+          {sessionStatus === 'loading' ? (
+            <div
+              className={`${controlBtnBase} border-transparent opacity-50`}
+              aria-busy="true"
+              aria-label={t('authLogin')}
+            >
+              <User className="h-3.5 w-3.5 shrink-0 text-muted sm:h-4 sm:w-4 md:h-5 md:w-5" />
+            </div>
+          ) : sessionStatus === 'authenticated' && session?.user ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthDropdown(!authDropdown);
+                  setLangDropdown(false);
+                  setCurrDropdown(false);
+                }}
+                className={`${controlBtnBase} ${
+                  authDropdown
+                    ? 'border-white/20 bg-white/10'
+                    : 'border-transparent hover:border-white/10 hover:bg-white/5'
+                }`}
+                aria-expanded={authDropdown}
+                aria-haspopup="menu"
+              >
+                <User className="h-3.5 w-3.5 shrink-0 text-brand-blue sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                <span className="hidden max-w-[5.5rem] truncate text-[10px] font-bold uppercase sm:inline sm:text-[11px] md:max-w-[8rem] md:text-sm">
+                  {session.user.name ?? session.user.email ?? t('authLogin')}
+                </span>
+                <ChevronDown
+                  size={14}
+                  className={`hidden opacity-60 transition-transform sm:inline ${authDropdown ? 'rotate-180' : ''}`}
+                  aria-hidden
+                />
+              </button>
+              <AnimatePresence>
+                {authDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute end-0 top-full z-[70] mt-2 min-w-[200px] rounded-xl border border-edge bg-surface-elevated p-2 shadow-xl"
+                    role="menu"
+                  >
+                    <div className="border-b border-edge px-3 py-2 text-[10px] text-muted sm:text-xs" dir="ltr" lang="en">
+                      {session.user.email}
+                    </div>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
+                      onClick={() => {
+                        setAuthDropdown(false);
+                        void signOut({ callbackUrl: `/${locale}` });
+                      }}
+                    >
+                      <LogOut size={14} className="shrink-0 text-muted" aria-hidden />
+                      {t('authSignOut')}
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className={`${controlBtnBase} border-transparent hover:border-white/10 hover:bg-white/5`}
+              aria-label={t('authLogin')}
+            >
+              <User className="h-3.5 w-3.5 shrink-0 text-brand-blue sm:h-4 sm:w-4 md:h-5 md:w-5" />
+              <span className="hidden text-[10px] font-bold uppercase sm:inline sm:text-[11px] md:text-sm">
+                {t('authLogin')}
+              </span>
+            </Link>
+          )}
+
           <Link
             href="/cart"
             className="group relative inline-flex min-h-9 min-w-9 items-center justify-center rounded-xl border border-edge bg-surface-elevated p-2 shadow-sm shadow-black/20 transition-all hover:border-brand-orange/30 hover:bg-brand-orange/10 sm:min-h-11 sm:min-w-11 sm:rounded-2xl sm:p-2.5 md:p-3 touch-manipulation"
@@ -213,9 +294,11 @@ export default function MegaHeader() {
         <div className="relative z-10 col-span-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1 md:max-w-2xl">
           <form onSubmit={handleSearchSubmit} className={`relative flex items-center transition-all duration-300 ${searchFocused ? 'md:scale-[1.02]' : ''}`}>
             <Search className="pointer-events-none absolute start-3 h-3.5 w-3.5 text-muted sm:start-4 sm:h-4 sm:w-4 md:h-5 md:w-5" />
-            <input 
-              type="search"
+            <input
+              type="text"
+              inputMode="search"
               enterKeyHint="search"
+              autoComplete="off"
               placeholder={t('search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -224,12 +307,13 @@ export default function MegaHeader() {
               className={`w-full bg-surface-elevated border border-edge rounded-lg py-2 ps-9 text-sm text-foreground placeholder:text-faint shadow-lg shadow-black/30 transition-all focus:border-brand-orange/45 focus:outline-none focus:ring-2 focus:ring-focus-ring min-h-[40px] sm:min-h-[44px] sm:rounded-xl sm:py-2.5 sm:ps-10 sm:text-base md:min-h-0 md:rounded-2xl md:py-3 md:ps-12 ${searchQuery ? 'pe-10 sm:pe-12' : 'pe-3 sm:pe-4'}`}
             />
             {searchQuery && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute end-1.5 top-1/2 inline-flex min-h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-md text-faint hover:text-foreground touch-manipulation sm:end-2 sm:min-h-10 sm:min-w-10 sm:rounded-lg"
+                aria-label={t('clearSearch')}
+                className="absolute end-1.5 top-1/2 inline-flex min-h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:text-foreground touch-manipulation sm:end-2 sm:min-h-10 sm:min-w-10 sm:rounded-lg"
               >
-                <X size={16} />
+                <X size={16} className="shrink-0" strokeWidth={2} />
               </button>
             )}
           </form>
@@ -248,7 +332,10 @@ export default function MegaHeader() {
                        <TrendingUp size={12} className="text-brand-orange" />
                        {t('trending')}
                     </p>
-                    <div className="space-y-1">
+                    <div
+                      className="space-y-1"
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
                       {[
                         { key: 'ps', label: t('trendingGames.ps'), query: 'playstation' },
                         { key: 'steam', label: t('trendingGames.steam'), query: 'steam' },

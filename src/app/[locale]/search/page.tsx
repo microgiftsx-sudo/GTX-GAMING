@@ -10,14 +10,19 @@ import { discountBadgeVisible } from '@/lib/store-product';
 import { useCart } from '@/context/CartContext';
 import SearchSidebar from '@/components/search/SearchSidebar';
 import { Link } from '@/i18n/routing';
-import { ChevronDown, Filter, LayoutGrid, Search as SearchIcon } from 'lucide-react';
+import { ChevronDown, Filter, LayoutGrid, Loader2, Search as SearchIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sortCatalogItems } from '@/lib/catalog-search-rank';
 
 /** Search grid: 2 cols default, 3 from xl */
 const SEARCH_CARD_SIZES = '(max-width: 1279px) 50vw, 33vw';
 
-const PAGE_SIZE = 36;
+/**
+ * Items per `/api/products` request (must stay constant across pages for Plati/Kinguin).
+ * Pagination uses the **server page index**, not `floor(visibleCount / PAGE_SIZE)`, so client-side
+ * filters (e.g. accounts title filter) do not repeat page 1.
+ */
+const PAGE_SIZE = 24;
 
 function mergeDedupeProducts(existing: StoreProduct[], incoming: StoreProduct[]): StoreProduct[] {
   const seen = new Set(existing.map((p) => p.id));
@@ -70,8 +75,11 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [didYouMean, setDidYouMean] = useState<string | null>(null);
   const itemsRef = useRef<StoreProduct[]>([]);
   const totalRef = useRef(0);
+  /** Last catalog `page` successfully loaded from `/api/products` (1-based). */
+  const lastFetchedPageRef = useRef(0);
 
   const query = searchParams.get('q') || '';
   /** Stable strings — avoid new [] each render (was retriggering fetch every paint and aborting requests). */
@@ -133,10 +141,17 @@ export default function SearchPage() {
     });
 
     setLoading(true);
+    setDidYouMean(null);
     setHasMore(false);
+    lastFetchedPageRef.current = 0;
     fetch(`/api/products?${qs}`, { signal: ac.signal })
       .then((r) => r.json())
-      .then((data: { items?: StoreProduct[]; total?: number }) => {
+      .then((data: {
+        items?: StoreProduct[];
+        total?: number;
+        didYouMean?: string;
+        listingBatchSize?: number;
+      }) => {
         if (listingKeyRef.current !== myKey) return;
         const batch = data.items ?? [];
         const nextTotal = typeof data.total === 'number' ? data.total : 0;
@@ -145,9 +160,18 @@ export default function SearchPage() {
         itemsRef.current = sorted;
         setTotal(nextTotal);
         totalRef.current = nextTotal;
-        setHasMore(
-          batch.length === PAGE_SIZE && sorted.length < nextTotal,
-        );
+        const hint =
+          typeof data.didYouMean === 'string' && data.didYouMean.trim()
+            ? data.didYouMean.trim()
+            : null;
+        setDidYouMean(hint);
+        const rawLen =
+          typeof data.listingBatchSize === 'number'
+            ? data.listingBatchSize
+            : batch.length;
+        lastFetchedPageRef.current = 1;
+        // Full server page ⇒ likely more rows; do not use `sorted.length < total` when totals are API-wide but listing is client-filtered (accounts).
+        setHasMore(rawLen === PAGE_SIZE && batch.length > 0);
       })
       .catch(() => {
         if (!ac.signal.aborted) {
@@ -156,6 +180,7 @@ export default function SearchPage() {
           itemsRef.current = [];
           setTotal(0);
           totalRef.current = 0;
+          setDidYouMean(null);
           setHasMore(false);
         }
       })
@@ -170,7 +195,7 @@ export default function SearchPage() {
     if (loading || loadingMore || !hasMore) return;
     const myKey = listingKeyRef.current;
     const prev = itemsRef.current;
-    const nextPage = Math.floor(prev.length / PAGE_SIZE) + 1;
+    const nextPage = lastFetchedPageRef.current + 1;
     const qs = buildProductListingQuery({
       q: query,
       categories,
@@ -185,7 +210,11 @@ export default function SearchPage() {
     setLoadingMore(true);
     try {
       const r = await fetch(`/api/products?${qs}`);
-      const data: { items?: StoreProduct[]; total?: number } = await r.json();
+      const data: {
+        items?: StoreProduct[];
+        total?: number;
+        listingBatchSize?: number;
+      } = await r.json();
       if (listingKeyRef.current !== myKey) return;
       const batch = data.items ?? [];
       if (typeof data.total === 'number') {
@@ -197,11 +226,15 @@ export default function SearchPage() {
         sortKey,
         query.trim(),
       );
+      if (listingKeyRef.current !== myKey) return;
       setItems(merged);
       itemsRef.current = merged;
-      setHasMore(
-        batch.length === PAGE_SIZE && merged.length < totalRef.current,
-      );
+      const rawLen =
+        typeof data.listingBatchSize === 'number'
+          ? data.listingBatchSize
+          : batch.length;
+      lastFetchedPageRef.current = nextPage;
+      setHasMore(rawLen === PAGE_SIZE && batch.length > 0);
     } catch {
       // ignore
     } finally {
@@ -349,15 +382,22 @@ export default function SearchPage() {
         {/* Results Grid */}
         <div className="flex-1 min-w-0">
           {loading ? (
-            <div className="py-24 text-center text-muted text-sm animate-pulse">…</div>
+            <div
+              className="flex min-h-[40vh] flex-col items-center justify-center gap-4 py-24 text-center"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2
+                className="h-10 w-10 shrink-0 animate-spin text-brand-orange"
+                aria-hidden
+              />
+              <p className="text-sm font-medium text-muted">{t('loadingResults')}</p>
+            </div>
           ) : items.length > 0 ? (
             <>
             <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-6 xl:grid-cols-3 md:gap-8 content-below-fold">
               {items.map((product, index) => (
-                <motion.div 
-                  layout
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div
                   key={product.id}
                   className="group flex min-h-0 flex-col"
                 >
@@ -440,14 +480,17 @@ export default function SearchPage() {
                       {formatPrice(product.price, locale)}
                     </span>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
             {hasMore && (
               <div className="mt-10 flex flex-col items-center gap-2 pb-4">
                 <button
                   type="button"
-                  onClick={() => void loadMore()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void loadMore();
+                  }}
                   disabled={loadingMore}
                   className="min-h-12 w-full max-w-sm rounded-2xl border border-edge bg-surface-elevated px-6 py-3 text-xs font-semibold uppercase tracking-wider text-foreground shadow-md transition-colors hover:border-brand-orange/40 hover:text-brand-orange disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation"
                 >
@@ -465,6 +508,18 @@ export default function SearchPage() {
                <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-8 text-white/20">
                  <SearchIcon size={40} />
                </div>
+               {query.trim() && didYouMean && (
+                 <p className="mx-auto mb-6 max-w-lg px-4 text-base leading-relaxed text-foreground">
+                   <span className="font-semibold text-brand-orange">{t('didYouMean')}:</span>{' '}
+                   <Link
+                     href={`/search?q=${encodeURIComponent(didYouMean)}`}
+                     className="font-medium text-brand-blue underline decoration-brand-blue/40 underline-offset-4 hover:text-brand-orange"
+                     dir="auto"
+                   >
+                     {didYouMean}
+                   </Link>
+                 </p>
+               )}
                <h3 className="text-2xl font-bold text-muted mb-2">{t('noResults')}</h3>
                <p className="text-sm text-faint">{t('clearAll')} {t('filters')} {t('sortBy')}</p>
             </motion.div>
