@@ -51,7 +51,11 @@
     "turnstileFailed": "Security check failed. Please try again.",
     "turnstileWidgetError": "Could not load the security check. Refresh the page.",
     "signInError": "Could not start sign-in. Try again later.",
-    "providerMissing": "Google sign-in is not configured yet. Set AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET on the server."
+    "providerMissingIntro": "Google sign-in is not enabled on the server yet. (Admins: set AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET in environment variables.)",
+    "providerMissingWhere": "Where to sign in once enabled: use the “Account” button next to the cart in the header, or open /login (with your locale prefix, e.g. /en/login).",
+    "providerMissingHow": "How registration works when enabled: “Continue with Google” creates an account on first use or signs you in if that Google account was already linked.",
+    "providerMissingBrowse": "You can continue without signing in: browse, search, and the cart work without an account. During login maintenance the storefront stays open for everyone.",
+    "browseStore": "Browse the store"
   },
   "Cart": {
     "title": "Shopping Cart",

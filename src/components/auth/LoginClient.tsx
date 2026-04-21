@@ -91,9 +91,12 @@ export default function LoginClient() {
         {hasGoogle === false && (
           <div
             role="status"
-            className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-100"
+            className="mb-6 space-y-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-4 text-start text-xs leading-relaxed text-amber-50 sm:text-[13px]"
           >
-            {t('providerMissing')}
+            <p className="font-semibold text-amber-100">{t('providerMissingIntro')}</p>
+            <p className="text-amber-100/90">{t('providerMissingWhere')}</p>
+            <p className="text-amber-100/90">{t('providerMissingHow')}</p>
+            <p className="text-amber-100/90">{t('providerMissingBrowse')}</p>
           </div>
         )}
 
@@ -139,9 +142,15 @@ export default function LoginClient() {
 
         <p className="mt-4 text-center text-[11px] leading-relaxed text-faint">{t('googleLegal')}</p>
 
-        <div className="mt-8 border-t border-edge pt-6 text-center">
-          <Link href="/" className="text-xs font-medium text-brand-orange hover:underline">
+        <div className="mt-8 border-t border-edge pt-6 text-center text-xs">
+          <Link href="/" className="font-medium text-brand-orange hover:underline">
             {t('backHome')}
+          </Link>
+          <span className="mx-2 text-faint" aria-hidden>
+            ·
+          </span>
+          <Link href="/search" className="font-medium text-brand-orange hover:underline">
+            {t('browseStore')}
           </Link>
         </div>
       </div>
