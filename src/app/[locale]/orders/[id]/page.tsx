@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { getOrder } from '@/lib/orders';
+import { OrderProductDetailsDialog } from '@/components/orders/OrderProductDetailsDialog';
 import { Link } from '@/i18n/routing';
 
 export async function generateMetadata({
@@ -82,6 +83,17 @@ export default async function OrderStatusPage({
                 <p className="mt-1 whitespace-pre-line text-sm text-foreground">{order.deliveryDetails}</p>
               </div>
             ) : null}
+
+            <OrderProductDetailsDialog
+              status={order.status}
+              itemTitles={order.items.map((item) => item.title)}
+              productDetails={order.productDeliveryDetails}
+              fallbackDetails={order.deliveryDetails}
+              buttonLabel={t('viewProductDetails')}
+              titleLabel={t('productDetailsTitle')}
+              productLabel={t('productLabel')}
+              closeLabel={t('close')}
+            />
           </>
         )}
       </div>

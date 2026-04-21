@@ -195,6 +195,15 @@ function orderMessage(order: OrderRecord) {
   return lines.join('\n');
 }
 
+function combinedDeliveryDetails(order: OrderRecord, perProductDetails: string[]) {
+  return order.items
+    .map((item, idx) => {
+      const details = perProductDetails[idx]?.trim() ?? '';
+      return `Product ${idx + 1}: ${item.title}\n${details || '-'}`;
+    })
+    .join('\n\n');
+}
+
 const TELEGRAM_CAPTION_MAX = 1024;
 
 function orderCaptionForPhoto(order: OrderRecord) {
@@ -859,13 +868,23 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         await sendText(chatId, 'Usage: /deliver ORDER_ID delivery details text');
         return;
       }
-      const delivered = await markOrderDelivered(orderId, details);
+      const existing = await getOrder(orderId);
+      if (!existing) {
+        await sendText(chatId, 'Order not found.');
+        return;
+      }
+      const perProductDetails = existing.items.map(() => details);
+      const delivered = await markOrderDelivered(
+        orderId,
+        combinedDeliveryDetails(existing, perProductDetails),
+        perProductDetails,
+      );
       if (!delivered) {
         await sendText(chatId, 'Order not found.');
         return;
       }
       try {
-        await sendOrderDeliveredEmail(delivered, details);
+        await sendOrderDeliveredEmail(delivered, delivered.deliveryDetails ?? details);
         await markOrderDeliveryNotified(delivered.id);
         await sendText(
           chatId,
@@ -906,7 +925,32 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         await sendText(chatId, 'Delivery details are empty. Send text or /cancel.');
         return;
       }
-      const delivered = await markOrderDelivered(pendingDelivery.orderId, details);
+      const existing = await getOrder(pendingDelivery.orderId);
+      if (!existing) {
+        await clearPendingOrderDelivery(userId);
+        await sendText(chatId, 'Order not found. Cancelled.');
+        return;
+      }
+      const nextDetails = [...pendingDelivery.productDetails, details];
+      const nextIndex = pendingDelivery.itemIndex + 1;
+      if (nextIndex < existing.items.length) {
+        await setPendingOrderDelivery(userId, existing.id, nextIndex, nextDetails);
+        await sendText(
+          chatId,
+          [
+            `Saved Product ${pendingDelivery.itemIndex + 1}/${existing.items.length}.`,
+            `Now send details for Product ${nextIndex + 1}: ${existing.items[nextIndex]?.title ?? ''}`,
+            'Tip: use /cancel to abort.',
+          ].join('\n'),
+        );
+        return;
+      }
+
+      const delivered = await markOrderDelivered(
+        pendingDelivery.orderId,
+        combinedDeliveryDetails(existing, nextDetails),
+        nextDetails,
+      );
       if (!delivered) {
         await clearPendingOrderDelivery(userId);
         await sendText(chatId, 'Order not found. Cancelled.');
@@ -914,7 +958,10 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       }
       await clearPendingOrderDelivery(userId);
       try {
-        await sendOrderDeliveredEmail(delivered, details);
+        await sendOrderDeliveredEmail(
+          delivered,
+          delivered.deliveryDetails ?? nextDetails.join('\n\n'),
+        );
         await markOrderDeliveryNotified(delivered.id);
         await sendText(
           chatId,
@@ -1104,13 +1151,14 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         await answerCallbackQuery(cb.id, 'Order not found');
         return;
       }
-      await setPendingOrderDelivery(userId, orderId);
+      await setPendingOrderDelivery(userId, orderId, 0, []);
       await answerCallbackQuery(cb.id, `Send delivery details for ${orderId}`);
       await sendText(
         chatId,
         [
           `📝 Approve ${orderId}`,
-          'Now send product/delivery details in your next message.',
+          `Now send details for Product 1/${existing.items.length}: ${existing.items[0]?.title ?? ''}`,
+          'I will ask again for each next product if this order has multiple items.',
           'Tip: use /cancel to abort.',
         ].join('\n'),
       );

@@ -47,6 +47,8 @@ export type OrderRecord = {
   notes?: string;
   /** Admin-entered delivery details (sent by email + shown on order page). */
   deliveryDetails?: string;
+  /** Per-product delivery details in the same order as `items`. */
+  productDeliveryDetails?: string[];
   deliveredAt?: string;
   deliveryNotifiedAt?: string;
   /** IQD sum of line items before tax */
@@ -157,6 +159,7 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
 export async function markOrderDelivered(
   orderId: string,
   deliveryDetails: string,
+  productDeliveryDetails?: string[],
 ): Promise<OrderRecord | null> {
   const orders = await listOrders();
   const idx = orders.findIndex((order) => order.id === orderId);
@@ -167,6 +170,9 @@ export async function markOrderDelivered(
     ...current,
     status: 'completed',
     deliveryDetails: deliveryDetails.trim(),
+    ...(productDeliveryDetails && productDeliveryDetails.length > 0
+      ? { productDeliveryDetails: productDeliveryDetails.map((x) => x.trim()) }
+      : {}),
     deliveredAt: now,
     updatedAt: now,
   };

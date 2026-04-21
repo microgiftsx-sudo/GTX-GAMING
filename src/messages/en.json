@@ -73,6 +73,10 @@
     "statusOnHold": "On hold",
     "statusRefunded": "Refunded",
     "statusCancelled": "Cancelled",
+    "viewProductDetails": "View product details",
+    "productDetailsTitle": "Delivered product details",
+    "productLabel": "Product",
+    "close": "Close",
     "accessDeniedTitle": "Could not open this order",
     "accessDeniedHint": "This link is invalid or expired. Use the link sent to your email.",
     "goHome": "Back to home"

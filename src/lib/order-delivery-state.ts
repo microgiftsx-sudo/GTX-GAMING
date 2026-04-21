@@ -4,6 +4,8 @@ import { getDataRoot } from '@/lib/data-root';
 
 export type PendingOrderDelivery = {
   orderId: string;
+  itemIndex: number;
+  productDetails: string[];
   expiresAt: number;
 };
 
@@ -27,10 +29,17 @@ async function writeStore(store: Store) {
   await writeFile(FILE, `${JSON.stringify(store, null, 2)}\n`, 'utf8');
 }
 
-export async function setPendingOrderDelivery(userId: number, orderId: string): Promise<void> {
+export async function setPendingOrderDelivery(
+  userId: number,
+  orderId: string,
+  itemIndex = 0,
+  productDetails: string[] = [],
+): Promise<void> {
   const store = await readStore();
   store[String(userId)] = {
     orderId,
+    itemIndex,
+    productDetails,
     expiresAt: Date.now() + TTL_MS,
   };
   await writeStore(store);

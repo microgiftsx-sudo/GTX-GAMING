@@ -73,6 +73,10 @@
     "statusOnHold": "معلق",
     "statusRefunded": "مسترجع",
     "statusCancelled": "ملغي",
+    "viewProductDetails": "عرض تفاصيل المنتجات",
+    "productDetailsTitle": "تفاصيل المنتجات المسلمة",
+    "productLabel": "المنتج",
+    "close": "إغلاق",
     "accessDeniedTitle": "تعذر فتح الطلب",
     "accessDeniedHint": "رابط الطلب غير صحيح أو منتهي. استخدم الرابط الذي وصلك على بريدك.",
     "goHome": "العودة للرئيسية"
