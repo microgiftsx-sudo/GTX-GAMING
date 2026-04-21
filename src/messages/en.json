@@ -37,7 +37,9 @@
       "EUR": "€ EUR"
     },
     "authLogin": "Account",
-    "authSignOut": "Sign out"
+    "authSignOut": "Sign out",
+    "authPurchases": "Purchases",
+    "authCurrency": "Currency"
   },
   "Auth": {
     "pageTitle": "Sign in",
@@ -52,6 +54,15 @@
     "turnstileWidgetError": "Could not load the security check. Refresh the page.",
     "signInError": "Could not start sign-in. Try again later.",
     "providerMissing": "Google sign-in is not configured yet. Set AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET on the server."
+  },
+  "Purchases": {
+    "pageTitle": "My purchases",
+    "pageDescription": "View your previous account purchases.",
+    "title": "Purchases",
+    "subtitle": "Your previous orders and statuses will appear here.",
+    "emptyTitle": "No purchases yet",
+    "emptyHint": "Complete a purchase and it will appear here right away.",
+    "browseStore": "Browse store"
   },
   "Cart": {
     "title": "Shopping Cart",

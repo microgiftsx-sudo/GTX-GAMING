@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, Globe, ShoppingCart, ChevronDown, X, TrendingUp, User, LogOut } from 'lucide-react';
+import { Search, ShoppingCart, ChevronDown, X, TrendingUp, User, LogOut, ReceiptText } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/context/CartContext';
@@ -25,8 +25,6 @@ export default function MegaHeader() {
   
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [langDropdown, setLangDropdown] = useState(false);
-  const [currDropdown, setCurrDropdown] = useState(false);
   const [authDropdown, setAuthDropdown] = useState(false);
   const [headerHits, setHeaderHits] = useState<StoreProduct[]>([]);
   const { data: session, status: sessionStatus } = useSession();
@@ -64,7 +62,6 @@ export default function MegaHeader() {
 
   const toggleLanguage = (newLocale: AppLocale) => {
     router.replace(pathname, { locale: newLocale });
-    setLangDropdown(false);
   };
 
   const controlBtnBase =
@@ -90,112 +87,8 @@ export default function MegaHeader() {
           </span>
         </Link>
 
-        {/* Lang + currency + cart — same pattern as desktop on all breakpoints */}
+        {/* Profile + cart controls */}
         <div className="relative z-[60] col-start-2 row-start-1 flex items-center justify-end gap-1 sm:gap-2 md:col-start-3 md:gap-4">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setLangDropdown(!langDropdown);
-                setCurrDropdown(false);
-                setAuthDropdown(false);
-              }}
-              className={`${controlBtnBase} ${
-                langDropdown
-                  ? 'border-white/20 bg-white/10'
-                  : 'border-transparent hover:border-white/10 hover:bg-white/5'
-              }`}
-            >
-              <Globe className="h-3.5 w-3.5 shrink-0 text-brand-blue sm:h-4 sm:w-4 md:h-5 md:w-5" />
-              <span className="max-w-[3.75rem] truncate text-[10px] font-bold uppercase sm:max-w-[4.5rem] sm:text-[11px] md:max-w-none md:text-sm">
-                {t(`languages.${locale}`)}
-              </span>
-            </button>
-            <AnimatePresence>
-              {langDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute end-0 top-full z-[70] mt-2 min-w-[120px] rounded-xl border border-edge bg-surface-elevated p-2 shadow-xl"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleLanguage('ar')}
-                    className={`w-full rounded-lg px-4 py-2 text-start text-xs font-bold transition-colors ${
-                      locale === 'ar'
-                        ? 'bg-brand-orange text-white'
-                        : 'text-white/40 hover:bg-white/5 hover:text-white'
-                    }`}
-                  >
-                    {t('languages.ar')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleLanguage('en')}
-                    className={`w-full rounded-lg px-4 py-2 text-start text-xs font-bold transition-colors ${
-                      locale === 'en'
-                        ? 'bg-brand-orange text-white'
-                        : 'text-white/40 hover:bg-white/5 hover:text-white'
-                    }`}
-                  >
-                    {t('languages.en')}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setCurrDropdown(!currDropdown);
-                setLangDropdown(false);
-                setAuthDropdown(false);
-              }}
-              className={`${controlBtnBase} ${
-                currDropdown
-                  ? 'border-white/20 bg-white/10'
-                  : 'border-transparent hover:border-white/10 hover:bg-white/5'
-              }`}
-            >
-              <CurrencyFlag code={currency} size="sm" className="sm:text-lg" />
-              <span className="max-w-[2.85rem] truncate text-[10px] font-bold tracking-tight sm:max-w-[3.25rem] sm:text-[11px] md:max-w-none md:text-sm">
-                {t(`currencies.${currency}`)}
-              </span>
-            </button>
-            <AnimatePresence>
-              {currDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute end-0 top-full z-[70] mt-2 min-w-[100px] rounded-xl border border-edge bg-surface-elevated p-2 shadow-xl"
-                >
-                  {['IQD', 'USD', 'EUR'].map((currCode) => (
-                    <button
-                      type="button"
-                      key={currCode}
-                      onClick={() => {
-                        setCurrency(currCode);
-                        setCurrDropdown(false);
-                      }}
-                      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-start text-xs font-bold transition-colors ${
-                        currency === currCode
-                          ? 'bg-brand-orange text-white'
-                          : 'text-white/40 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      <CurrencyFlag code={currCode} size="md" />
-                      <span>{t(`currencies.${currCode}`)}</span>
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
           {sessionStatus === 'loading' ? (
             <div
               className={`${controlBtnBase} border-transparent opacity-50`}
@@ -210,8 +103,6 @@ export default function MegaHeader() {
                 type="button"
                 onClick={() => {
                   setAuthDropdown(!authDropdown);
-                  setLangDropdown(false);
-                  setCurrDropdown(false);
                 }}
                 className={`${controlBtnBase} ${
                   authDropdown
@@ -242,6 +133,66 @@ export default function MegaHeader() {
                   >
                     <div className="border-b border-edge px-3 py-2 text-[10px] text-muted sm:text-xs" dir="ltr" lang="en">
                       {session.user.email}
+                    </div>
+                    <Link
+                      href="/purchases"
+                      role="menuitem"
+                      className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
+                      onClick={() => setAuthDropdown(false)}
+                    >
+                      <ReceiptText size={14} className="shrink-0 text-muted" aria-hidden />
+                      {t('authPurchases')}
+                    </Link>
+                    <div className="mt-1 border-t border-edge px-2 pt-2">
+                      <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-faint">
+                        {t('languages.ar')} / {t('languages.en')}
+                      </p>
+                      <div className="space-y-1">
+                        <button
+                          type="button"
+                          onClick={() => toggleLanguage('ar')}
+                          className={`w-full rounded-lg px-3 py-2 text-start text-xs font-bold transition-colors ${
+                            locale === 'ar'
+                              ? 'bg-brand-orange text-white'
+                              : 'text-white/40 hover:bg-white/5 hover:text-white'
+                          }`}
+                        >
+                          {t('languages.ar')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleLanguage('en')}
+                          className={`w-full rounded-lg px-3 py-2 text-start text-xs font-bold transition-colors ${
+                            locale === 'en'
+                              ? 'bg-brand-orange text-white'
+                              : 'text-white/40 hover:bg-white/5 hover:text-white'
+                          }`}
+                        >
+                          {t('languages.en')}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-2 border-t border-edge px-2 pt-2">
+                      <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-faint">
+                        {t('authCurrency')}
+                      </p>
+                      <div className="space-y-1">
+                        {['IQD', 'USD', 'EUR'].map((currCode) => (
+                          <button
+                            type="button"
+                            key={currCode}
+                            onClick={() => setCurrency(currCode)}
+                            className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-start text-xs font-bold transition-colors ${
+                              currency === currCode
+                                ? 'bg-brand-orange text-white'
+                                : 'text-white/40 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            <CurrencyFlag code={currCode} size="md" />
+                            <span>{t(`currencies.${currCode}`)}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <button
                       type="button"

@@ -37,7 +37,9 @@
       "EUR": "€ EUR"
     },
     "authLogin": "حسابي",
-    "authSignOut": "تسجيل الخروج"
+    "authSignOut": "تسجيل الخروج",
+    "authPurchases": "المشتريات",
+    "authCurrency": "العملة"
   },
   "Auth": {
     "pageTitle": "تسجيل الدخول",
@@ -52,6 +54,15 @@
     "turnstileWidgetError": "تعذر تحميل التحقق. أعد تحميل الصفحة.",
     "signInError": "تعذر بدء تسجيل الدخول. حاول لاحقاً.",
     "providerMissing": "لم يُضبط تسجيل الدخول بـ Google بعد. أضف AUTH_GOOGLE_ID و AUTH_GOOGLE_SECRET في إعدادات الخادم."
+  },
+  "Purchases": {
+    "pageTitle": "مشترياتي",
+    "pageDescription": "عرض المشتريات السابقة لحسابك.",
+    "title": "قسم المشتريات",
+    "subtitle": "هنا ستظهر طلباتك السابقة وحالة كل طلب.",
+    "emptyTitle": "لا توجد مشتريات حتى الآن",
+    "emptyHint": "ابدأ بشراء منتج، وستجده هنا مباشرة بعد إكمال الطلب.",
+    "browseStore": "تصفح المتجر"
   },
   "Cart": {
     "title": "سلة",
