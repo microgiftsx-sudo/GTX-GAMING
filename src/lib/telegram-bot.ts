@@ -56,6 +56,11 @@ import {
   getSearchTranslateSettings,
   setSearchTranslateSettings,
 } from '@/lib/search-translate-settings';
+import {
+  getTelegramUserLang,
+  setTelegramUserLang,
+  type TelegramLang,
+} from '@/lib/telegram-language-state';
 
 type TelegramApiResponse<T> = {
   ok: boolean;
@@ -122,9 +127,29 @@ function statusLabel(status: OrderStatus) {
   }
 }
 
-function orderKeyboard(order: OrderRecord) {
+function statusLabelByLang(status: OrderStatus, lang: TelegramLang) {
+  if (lang === 'ar') {
+    switch (status) {
+      case 'pending':
+        return 'قيد المراجعة';
+      case 'processing':
+        return 'قيد المعالجة';
+      case 'completed':
+        return 'مكتمل';
+      case 'on_hold':
+        return 'معلّق';
+      case 'refunded':
+        return 'مسترجع';
+      case 'cancelled':
+        return 'ملغي';
+    }
+  }
+  return statusLabel(status);
+}
+
+function orderKeyboard(order: OrderRecord, lang: TelegramLang = 'en') {
   const productButtons = order.items.slice(0, 2).map((item, idx) => ({
-    text: `Product ${idx + 1}`,
+    text: lang === 'ar' ? `المنتج ${idx + 1}` : `Product ${idx + 1}`,
     url: item.kinguinUrl,
   }));
 
@@ -134,26 +159,30 @@ function orderKeyboard(order: OrderRecord) {
   }
   rows.push(
     [
-      { text: 'Approve + details', callback_data: `order:set:${order.id}:completed` },
-      { text: 'Processing', callback_data: `order:set:${order.id}:processing` },
+      {
+        text: lang === 'ar' ? 'موافقة + تفاصيل' : 'Approve + details',
+        callback_data: `order:set:${order.id}:completed`,
+      },
+      { text: lang === 'ar' ? 'قيد المعالجة' : 'Processing', callback_data: `order:set:${order.id}:processing` },
     ],
     [
-      { text: 'Hold', callback_data: `order:set:${order.id}:on_hold` },
-      { text: 'Refund', callback_data: `order:set:${order.id}:refunded` },
+      { text: lang === 'ar' ? 'تعليق' : 'Hold', callback_data: `order:set:${order.id}:on_hold` },
+      { text: lang === 'ar' ? 'استرجاع' : 'Refund', callback_data: `order:set:${order.id}:refunded` },
     ],
-    [{ text: 'Cancel', callback_data: `order:set:${order.id}:cancelled` }],
-    [{ text: 'Payment Methods', callback_data: 'payment:list' }],
+    [{ text: lang === 'ar' ? 'إلغاء' : 'Cancel', callback_data: `order:set:${order.id}:cancelled` }],
+    [{ text: lang === 'ar' ? 'طرق الدفع' : 'Payment Methods', callback_data: 'payment:list' }],
   );
 
   return { inline_keyboard: rows };
 }
 
-function orderMessage(order: OrderRecord) {
+function orderMessage(order: OrderRecord, lang: TelegramLang = 'en') {
+  const isAr = lang === 'ar';
   const lines = [
-    `🧾 New Order: ${order.id}`,
-    `Status: ${statusLabel(order.status)}`,
+    `${isAr ? '🧾 طلب جديد' : '🧾 New Order'}: ${order.id}`,
+    `${isAr ? 'الحالة' : 'Status'}: ${statusLabelByLang(order.status, lang)}`,
     `Email: ${order.email}`,
-    `Payment: ${order.paymentMethodName}`,
+    `${isAr ? 'الدفع' : 'Payment'}: ${order.paymentMethodName}`,
   ];
   const discount = order.discountAmount ?? 0;
   const hasCoupon = discount > 0 && Boolean(order.couponCode);
@@ -165,29 +194,29 @@ function orderMessage(order: OrderRecord) {
     order.subtotalBeforeTax != null
   ) {
     lines.push(
-      `Subtotal (before tax): ${order.subtotalBeforeTax.toLocaleString('en-US')} IQD`,
-      `Tax (${order.taxRatePercent}%): ${(order.taxAmount ?? 0).toLocaleString('en-US')} IQD`,
-      `Total after tax: ${afterTaxBeforeCoupon.toLocaleString('en-US')} IQD`,
+      `${isAr ? 'المجموع قبل الضريبة' : 'Subtotal (before tax)'}: ${order.subtotalBeforeTax.toLocaleString('en-US')} IQD`,
+      `${isAr ? 'الضريبة' : 'Tax'} (${order.taxRatePercent}%): ${(order.taxAmount ?? 0).toLocaleString('en-US')} IQD`,
+      `${isAr ? 'الإجمالي بعد الضريبة' : 'Total after tax'}: ${afterTaxBeforeCoupon.toLocaleString('en-US')} IQD`,
     );
     if (hasCoupon && order.couponCode) {
       lines.push(
-        `Coupon ${order.couponCode} (${order.couponPercentOff ?? '?'}%): −${discount.toLocaleString('en-US')} IQD`,
-        `Amount due (IQD): ${order.subtotal.toLocaleString('en-US')}`,
+        `${isAr ? 'كوبون' : 'Coupon'} ${order.couponCode} (${order.couponPercentOff ?? '?'}%): −${discount.toLocaleString('en-US')} IQD`,
+        `${isAr ? 'المبلغ المطلوب' : 'Amount due'} (IQD): ${order.subtotal.toLocaleString('en-US')}`,
       );
     }
   } else if (hasCoupon && order.couponCode) {
     lines.push(
-      `Subtotal (after tax): ${afterTaxBeforeCoupon.toLocaleString('en-US')} IQD`,
-      `Coupon ${order.couponCode} (${order.couponPercentOff ?? '?'}%): −${discount.toLocaleString('en-US')} IQD`,
-      `Amount due (IQD): ${order.subtotal.toLocaleString('en-US')}`,
+      `${isAr ? 'المجموع بعد الضريبة' : 'Subtotal (after tax)'}: ${afterTaxBeforeCoupon.toLocaleString('en-US')} IQD`,
+      `${isAr ? 'كوبون' : 'Coupon'} ${order.couponCode} (${order.couponPercentOff ?? '?'}%): −${discount.toLocaleString('en-US')} IQD`,
+      `${isAr ? 'المبلغ المطلوب' : 'Amount due'} (IQD): ${order.subtotal.toLocaleString('en-US')}`,
     );
   } else {
-    lines.push(`Subtotal (IQD): ${order.subtotal.toLocaleString('en-US')}`);
+    lines.push(`${isAr ? 'المجموع' : 'Subtotal'} (IQD): ${order.subtotal.toLocaleString('en-US')}`);
   }
   lines.push(
-    `Created: ${order.createdAt}`,
+    `${isAr ? 'تاريخ الإنشاء' : 'Created'}: ${order.createdAt}`,
     '',
-    'Items (unit list / IQD):',
+    isAr ? 'المنتجات (سعر الوحدة / IQD):' : 'Items (unit list / IQD):',
     ...order.items.map(
       (item) => `• ${item.title} x${item.quantity} (${item.price.toLocaleString('en-US')} IQD)`,
     ),
@@ -206,8 +235,8 @@ function combinedDeliveryDetails(order: OrderRecord, perProductDetails: string[]
 
 const TELEGRAM_CAPTION_MAX = 1024;
 
-function orderCaptionForPhoto(order: OrderRecord) {
-  const text = orderMessage(order);
+function orderCaptionForPhoto(order: OrderRecord, lang: TelegramLang = 'en') {
+  const text = orderMessage(order, lang);
   if (text.length <= TELEGRAM_CAPTION_MAX) return text;
   return `${text.slice(0, TELEGRAM_CAPTION_MAX - 3)}...`;
 }
@@ -239,7 +268,9 @@ function isAllowedAdmin(userId: number) {
   return ADMIN_IDS.has(userId);
 }
 
-const PAYMENT_METHODS_TEXT = 'Payment methods control:';
+function paymentMethodsText(lang: TelegramLang) {
+  return lang === 'ar' ? 'التحكم بطرق الدفع:' : 'Payment methods control:';
+}
 
 const FIELD_CODE: Record<'n' | 'a' | 'b' | 'i', PaymentEditField> = {
   n: 'name',
@@ -248,72 +279,79 @@ const FIELD_CODE: Record<'n' | 'a' | 'b' | 'i', PaymentEditField> = {
   i: 'icon',
 };
 
-function formatMethodEditText(method: PaymentMethod) {
+function formatMethodEditText(method: PaymentMethod, lang: TelegramLang = 'en') {
   const barcode = method.barcodeUrl?.trim() ? method.barcodeUrl : '(not set)';
+  const isAr = lang === 'ar';
   return [
-    `✏️ Edit: ${method.name}`,
+    `${isAr ? '✏️ تعديل' : '✏️ Edit'}: ${method.name}`,
     `ID: ${method.id}`,
-    `Account: ${method.account}`,
-    `Barcode: ${barcode}`,
+    `${isAr ? 'الحساب' : 'Account'}: ${method.account}`,
+    `${isAr ? 'الباركود' : 'Barcode'}: ${barcode}`,
     `Icon: ${method.icon}`,
     '',
-    'Choose a field, then send the new value in the next message.',
+    isAr ? 'اختر الحقل ثم أرسل القيمة الجديدة في الرسالة التالية.' : 'Choose a field, then send the new value in the next message.',
   ].join('\n');
 }
 
-function editMenuKeyboard(methodId: string) {
+function editMenuKeyboard(methodId: string, lang: TelegramLang = 'en') {
+  const isAr = lang === 'ar';
   return {
     inline_keyboard: [
       [
-        { text: 'Name', callback_data: `payment:field:${methodId}:n` },
-        { text: 'Account', callback_data: `payment:field:${methodId}:a` },
+        { text: isAr ? 'الاسم' : 'Name', callback_data: `payment:field:${methodId}:n` },
+        { text: isAr ? 'الحساب' : 'Account', callback_data: `payment:field:${methodId}:a` },
       ],
       [
-        { text: 'Barcode URL', callback_data: `payment:field:${methodId}:b` },
-        { text: 'Icon URL', callback_data: `payment:field:${methodId}:i` },
+        { text: isAr ? 'رابط الباركود' : 'Barcode URL', callback_data: `payment:field:${methodId}:b` },
+        { text: isAr ? 'رابط الأيقونة' : 'Icon URL', callback_data: `payment:field:${methodId}:i` },
       ],
       [
-        { text: '← Back', callback_data: 'payment:back:list' },
-        { text: 'Cancel input', callback_data: 'payment:cancel:pending' },
+        { text: isAr ? '← رجوع' : '← Back', callback_data: 'payment:back:list' },
+        { text: isAr ? 'إلغاء الإدخال' : 'Cancel input', callback_data: 'payment:cancel:pending' },
       ],
     ],
   };
 }
 
-async function buildPaymentMethodsReplyMarkup() {
+async function buildPaymentMethodsReplyMarkup(lang: TelegramLang = 'en') {
   const methods = await listPaymentMethods();
   const keyboard = methods.map((method) => [
     {
       text: `${method.enabled ? '✅' : '❌'} ${method.name}`,
       callback_data: `payment:toggle:${method.id}`,
     },
-    { text: '✏️', callback_data: `payment:editmenu:${method.id}` },
+    { text: lang === 'ar' ? '✏️ تعديل' : '✏️', callback_data: `payment:editmenu:${method.id}` },
   ]);
-  keyboard.push([{ text: 'Refresh Orders', callback_data: 'order:list' }]);
+  keyboard.push([{ text: lang === 'ar' ? 'تحديث الطلبات' : 'Refresh Orders', callback_data: 'order:list' }]);
   return { inline_keyboard: keyboard };
 }
 
-async function sendPaymentMethods(chatId: number) {
-  const reply_markup = await buildPaymentMethodsReplyMarkup();
-  await sendText(chatId, PAYMENT_METHODS_TEXT, reply_markup);
+async function sendPaymentMethods(chatId: number, lang: TelegramLang = 'en') {
+  const reply_markup = await buildPaymentMethodsReplyMarkup(lang);
+  await sendText(chatId, paymentMethodsText(lang), reply_markup);
 }
 
-async function editPaymentMethodsMessage(chatId: number, messageId: number) {
-  const reply_markup = await buildPaymentMethodsReplyMarkup();
+async function editPaymentMethodsMessage(chatId: number, messageId: number, lang: TelegramLang = 'en') {
+  const reply_markup = await buildPaymentMethodsReplyMarkup(lang);
   await callTelegram('editMessageText', {
     chat_id: chatId,
     message_id: messageId,
-    text: PAYMENT_METHODS_TEXT,
+    text: paymentMethodsText(lang),
     reply_markup,
   });
 }
 
-async function editPaymentEditMenuMessage(chatId: number, messageId: number, method: PaymentMethod) {
+async function editPaymentEditMenuMessage(
+  chatId: number,
+  messageId: number,
+  method: PaymentMethod,
+  lang: TelegramLang = 'en',
+) {
   await callTelegram('editMessageText', {
     chat_id: chatId,
     message_id: messageId,
-    text: formatMethodEditText(method),
-    reply_markup: editMenuKeyboard(method.id),
+    text: formatMethodEditText(method, lang),
+    reply_markup: editMenuKeyboard(method.id, lang),
   });
 }
 
@@ -345,17 +383,17 @@ async function editPaymentPromptMessage(
   });
 }
 
-async function sendRecentOrders(chatId: number) {
+async function sendRecentOrders(chatId: number, lang: TelegramLang = 'en') {
   const orders = await listOrders();
   if (orders.length === 0) {
-    await sendText(chatId, 'No orders yet.');
+    await sendText(chatId, lang === 'ar' ? 'لا توجد طلبات بعد.' : 'No orders yet.');
     return;
   }
   const sample = orders.slice(0, 5);
   await sendText(
     chatId,
     sample
-      .map((order) => `${order.id} | ${statusLabel(order.status)} | ${order.subtotal.toLocaleString('en-US')} IQD`)
+      .map((order) => `${order.id} | ${statusLabelByLang(order.status, lang)} | ${order.subtotal.toLocaleString('en-US')} IQD`)
       .join('\n'),
   );
 }
@@ -394,6 +432,45 @@ function formatHeroTtlHuman(seconds: number): string {
   return `${seconds}s`;
 }
 
+function startHelpText(lang: TelegramLang) {
+  if (lang === 'ar') {
+    return [
+      'بوت GTX جاهز.',
+      'الأوامر:',
+      '/orders — عرض آخر الطلبات',
+      '/payments — إدارة طرق الدفع والتعديل',
+      '/tax — عرض/تعديل نسبة الضريبة',
+      '/calc AMOUNT — حاسبة الضريبة',
+      '/gencoupon PERCENT [maxUses] [days] — إنشاء كوبون',
+      '/coupons — عرض الكوبونات',
+      '/coupon_off CODE — تعطيل كوبون',
+      '/hero — إدارة منتجات الهيرو',
+      '/trending — إدارة منتجات الترند',
+      `/hero_ttl — مدة كاش الهيرو (الافتراضي ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h)`,
+      '/catalog — مصدر الكاتالوج',
+      '/searchtranslate — إعداد ترجمة البحث',
+      '/deliver ORDER_ID DELIVERY_TEXT — تسليم الطلب وإرسال الإيميل',
+    ].join('\n');
+  }
+  return [
+    'GTX Bot ready.',
+    'Commands:',
+    '/orders — recent orders',
+    '/payments — toggle methods; tap ✏️ to edit name, account, barcode URL, icon',
+    '/tax — show VAT %; set: /tax 5',
+    '/calc AMOUNT — tax calculator (IQD); optional: /calc 50000 10',
+    '/gencoupon PERCENT [maxUses] [days] — create discount code',
+    '/coupons — list coupons',
+    '/coupon_off CODE — disable a coupon',
+    '/hero — hero carousel product IDs; set: /hero 123 456; clear: /hero clear',
+    '/trending — home trending strip IDs; set: /trending 123 456; clear: /trending clear',
+    `/hero_ttl — cache window (default ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h); set: /hero_ttl 6h or /hero_ttl 3600`,
+    '/catalog — show catalog source; set: /catalog kinguin | /catalog plati',
+    '/searchtranslate — Arabic→En search for catalog; see /searchtranslate (no args) for status & usage',
+    '/deliver ORDER_ID DELIVERY_TEXT — mark completed + email customer with order link',
+  ].join('\n');
+}
+
 function normalizeFieldValue(field: PaymentEditField, raw: string): string {
   const v = raw.trim();
   if (field === 'barcodeUrl' || field === 'icon') {
@@ -407,8 +484,8 @@ function normalizeFieldValue(field: PaymentEditField, raw: string): string {
 
 export async function sendOrderToTelegram(order: OrderRecord) {
   if (!DEFAULT_CHAT_ID) return;
-  const kb = orderKeyboard(order);
-  const caption = orderCaptionForPhoto(order);
+  const kb = orderKeyboard(order, 'en');
+  const caption = orderCaptionForPhoto(order, 'en');
   const receipt = order.receiptUrl?.trim() ?? '';
   const canUsePhoto = /^https?:\/\//i.test(receipt);
 
@@ -419,14 +496,14 @@ export async function sendOrderToTelegram(order: OrderRecord) {
     } catch {
       await sendText(
         DEFAULT_CHAT_ID,
-        `${orderMessage(order)}\n\nProof: ${receipt}`,
+        `${orderMessage(order, 'en')}\n\nProof: ${receipt}`,
         kb,
       );
       return;
     }
   }
 
-  await sendText(DEFAULT_CHAT_ID, orderMessage(order), kb);
+  await sendText(DEFAULT_CHAT_ID, orderMessage(order, 'en'), kb);
 }
 
 export async function handleTelegramUpdate(update: TelegramUpdate) {
@@ -435,8 +512,9 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   if (update.message?.text && update.message.from?.id) {
     const chatId = update.message.chat.id;
     const userId = update.message.from.id;
+    const lang = await getTelegramUserLang(userId);
     if (!isAllowedAdmin(userId)) {
-      await sendText(chatId, 'Unauthorized.');
+      await sendText(chatId, lang === 'ar' ? 'غير مصرح.' : 'Unauthorized.');
       return;
     }
     const text = update.message.text.trim();
@@ -446,36 +524,28 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       await clearPendingOrderDelivery(userId);
       await sendText(
         chatId,
-        [
-          'GTX Bot ready.',
-          'Commands:',
-          '/orders — recent orders',
-          '/payments — toggle methods; tap ✏️ to edit name, account, barcode URL, icon',
-          '/tax — show VAT %; set: /tax 5',
-          '/calc AMOUNT — tax calculator (IQD); optional: /calc 50000 10',
-          '/gencoupon PERCENT [maxUses] [days] — create discount code',
-          '/coupons — list coupons',
-          '/coupon_off CODE — disable a coupon',
-          '/hero — hero carousel product IDs; set: /hero 123 456; clear: /hero clear',
-          '/trending — home trending strip IDs; set: /trending 123 456; clear: /trending clear',
-          `/hero_ttl — cache window (default ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h); set: /hero_ttl 6h or /hero_ttl 3600`,
-          '/catalog — show catalog source; set: /catalog kinguin | /catalog plati',
-          '/searchtranslate — Arabic→En search for catalog; see /searchtranslate (no args) for status & usage',
-          '/deliver ORDER_ID DELIVERY_TEXT — mark completed + email customer with order link',
-        ].join('\n'),
+        lang === 'ar' ? 'اختر اللغة:' : 'Choose language:',
+        {
+          inline_keyboard: [
+            [
+              { text: 'العربية', callback_data: 'lang:set:ar' },
+              { text: 'English', callback_data: 'lang:set:en' },
+            ],
+          ],
+        },
       );
       return;
     }
     if (text === '/orders') {
       await clearPendingPaymentEdit(userId);
       await clearPendingOrderDelivery(userId);
-      await sendRecentOrders(chatId);
+      await sendRecentOrders(chatId, lang);
       return;
     }
     if (text === '/payments') {
       await clearPendingPaymentEdit(userId);
       await clearPendingOrderDelivery(userId);
-      await sendPaymentMethods(chatId);
+      await sendPaymentMethods(chatId, lang);
       return;
     }
 
@@ -893,7 +963,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
             `Email: ${delivered.email}`,
             `Public URL: ${orderPublicUrl(delivered)}`,
           ].join('\n'),
-          orderKeyboard(delivered),
+          orderKeyboard(delivered, lang),
         );
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -905,7 +975,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
             `Error: ${msg}`,
             `Public URL: ${orderPublicUrl(delivered)}`,
           ].join('\n'),
-          orderKeyboard(delivered),
+          orderKeyboard(delivered, lang),
         );
       }
       return;
@@ -914,7 +984,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     if (text === '/cancel') {
       await clearPendingPaymentEdit(userId);
       await clearPendingOrderDelivery(userId);
-      await sendText(chatId, 'Cancelled.');
+      await sendText(chatId, lang === 'ar' ? 'تم الإلغاء.' : 'Cancelled.');
       return;
     }
 
@@ -970,7 +1040,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
             `Email: ${delivered.email}`,
             `Public URL: ${orderPublicUrl(delivered)}`,
           ].join('\n'),
-          orderKeyboard(delivered),
+          orderKeyboard(delivered, lang),
         );
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -982,7 +1052,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
             `Error: ${msg}`,
             `Public URL: ${orderPublicUrl(delivered)}`,
           ].join('\n'),
-          orderKeyboard(delivered),
+          orderKeyboard(delivered, lang),
         );
       }
       return;
@@ -1010,7 +1080,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         const updated = (await listPaymentMethods()).find((m) => m.id === method.id);
         await sendText(
           chatId,
-          `Saved ${pending.field} for ${method.name}.${updated ? `\n\n${formatMethodEditText(updated)}` : ''}`,
+          `Saved ${pending.field} for ${method.name}.${updated ? `\n\n${formatMethodEditText(updated, lang)}` : ''}`,
         );
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -1036,15 +1106,25 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   const chatId = cb.message.chat.id;
   const userId = cb.from.id;
   const messageId = cb.message.message_id;
+  const lang = await getTelegramUserLang(userId);
+
+  if (cb.data.startsWith('lang:set:')) {
+    const code = cb.data.slice('lang:set:'.length);
+    const nextLang: TelegramLang = code === 'ar' ? 'ar' : 'en';
+    await setTelegramUserLang(userId, nextLang);
+    await answerCallbackQuery(cb.id, nextLang === 'ar' ? 'تم اختيار العربية' : 'English selected');
+    await sendText(chatId, startHelpText(nextLang));
+    return;
+  }
 
   if (cb.data === 'payment:list') {
-    await sendPaymentMethods(chatId);
-    await answerCallbackQuery(cb.id, 'Opened payment methods');
+    await sendPaymentMethods(chatId, lang);
+    await answerCallbackQuery(cb.id, lang === 'ar' ? 'تم فتح طرق الدفع' : 'Opened payment methods');
     return;
   }
   if (cb.data === 'order:list') {
-    await sendRecentOrders(chatId);
-    await answerCallbackQuery(cb.id, 'Orders refreshed');
+    await sendRecentOrders(chatId, lang);
+    await answerCallbackQuery(cb.id, lang === 'ar' ? 'تم تحديث الطلبات' : 'Orders refreshed');
     return;
   }
 
@@ -1052,14 +1132,14 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     await clearPendingPaymentEdit(userId);
     if (messageId != null) {
       try {
-        await editPaymentMethodsMessage(chatId, messageId);
+        await editPaymentMethodsMessage(chatId, messageId, lang);
       } catch {
-        await sendPaymentMethods(chatId);
+        await sendPaymentMethods(chatId, lang);
       }
     } else {
-      await sendPaymentMethods(chatId);
+      await sendPaymentMethods(chatId, lang);
     }
-    await answerCallbackQuery(cb.id, 'Back');
+    await answerCallbackQuery(cb.id, lang === 'ar' ? 'رجوع' : 'Back');
     return;
   }
 
@@ -1067,12 +1147,12 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     await clearPendingPaymentEdit(userId);
     if (messageId != null) {
       try {
-        await editPaymentMethodsMessage(chatId, messageId);
+        await editPaymentMethodsMessage(chatId, messageId, lang);
       } catch {
-        await sendPaymentMethods(chatId);
+        await sendPaymentMethods(chatId, lang);
       }
     }
-    await answerCallbackQuery(cb.id, 'Cancelled');
+    await answerCallbackQuery(cb.id, lang === 'ar' ? 'تم الإلغاء' : 'Cancelled');
     return;
   }
 
@@ -1081,16 +1161,16 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     const methods = await listPaymentMethods();
     const method = methods.find((m) => m.id === methodId);
     if (!method || messageId == null) {
-      await answerCallbackQuery(cb.id, 'Not found');
+      await answerCallbackQuery(cb.id, lang === 'ar' ? 'غير موجود' : 'Not found');
       return;
     }
     await clearPendingPaymentEdit(userId);
     try {
-      await editPaymentEditMenuMessage(chatId, messageId, method);
+      await editPaymentEditMenuMessage(chatId, messageId, method, lang);
     } catch {
-      await sendText(chatId, formatMethodEditText(method), editMenuKeyboard(method.id));
+      await sendText(chatId, formatMethodEditText(method, lang), editMenuKeyboard(method.id, lang));
     }
-    await answerCallbackQuery(cb.id, 'Edit');
+    await answerCallbackQuery(cb.id, lang === 'ar' ? 'تعديل' : 'Edit');
     return;
   }
 
@@ -1098,20 +1178,20 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     const rest = cb.data.slice('payment:field:'.length);
     const lastColon = rest.lastIndexOf(':');
     if (lastColon <= 0) {
-      await answerCallbackQuery(cb.id, 'Bad data');
+      await answerCallbackQuery(cb.id, lang === 'ar' ? 'بيانات غير صحيحة' : 'Bad data');
       return;
     }
     const methodId = rest.slice(0, lastColon);
     const code = rest.slice(lastColon + 1) as keyof typeof FIELD_CODE;
     const field = FIELD_CODE[code];
     if (!field) {
-      await answerCallbackQuery(cb.id, 'Bad field');
+      await answerCallbackQuery(cb.id, lang === 'ar' ? 'حقل غير صحيح' : 'Bad field');
       return;
     }
     const methods = await listPaymentMethods();
     const method = methods.find((m) => m.id === methodId);
     if (!method || messageId == null) {
-      await answerCallbackQuery(cb.id, 'Not found');
+      await answerCallbackQuery(cb.id, lang === 'ar' ? 'غير موجود' : 'Not found');
       return;
     }
     await setPendingPaymentEdit(userId, methodId, field);
@@ -1120,7 +1200,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     } catch {
       await sendText(chatId, `Reply with new ${field} for ${method.name}`);
     }
-    await answerCallbackQuery(cb.id, `Send ${field}`);
+    await answerCallbackQuery(cb.id, lang === 'ar' ? `أرسل ${field}` : `Send ${field}`);
     return;
   }
 
@@ -1132,14 +1212,14 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     await clearPendingPaymentEdit(userId);
     if (messageId != null) {
       try {
-        await editPaymentMethodsMessage(chatId, messageId);
+        await editPaymentMethodsMessage(chatId, messageId, lang);
       } catch {
-        await sendPaymentMethods(chatId);
+        await sendPaymentMethods(chatId, lang);
       }
     } else {
-      await sendPaymentMethods(chatId);
+      await sendPaymentMethods(chatId, lang);
     }
-    await answerCallbackQuery(cb.id, 'Updated');
+    await answerCallbackQuery(cb.id, lang === 'ar' ? 'تم التحديث' : 'Updated');
     return;
   }
   if (cb.data.startsWith('order:set:')) {
@@ -1148,31 +1228,49 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     if (status === 'completed') {
       const existing = await getOrder(orderId);
       if (!existing) {
-        await answerCallbackQuery(cb.id, 'Order not found');
+        await answerCallbackQuery(cb.id, lang === 'ar' ? 'الطلب غير موجود' : 'Order not found');
         return;
       }
       await setPendingOrderDelivery(userId, orderId, 0, []);
-      await answerCallbackQuery(cb.id, `Send delivery details for ${orderId}`);
+      await answerCallbackQuery(
+        cb.id,
+        lang === 'ar' ? `أرسل تفاصيل التسليم للطلب ${orderId}` : `Send delivery details for ${orderId}`,
+      );
       await sendText(
         chatId,
         [
-          `📝 Approve ${orderId}`,
-          `Now send details for Product 1/${existing.items.length}: ${existing.items[0]?.title ?? ''}`,
-          'I will ask again for each next product if this order has multiple items.',
-          'Tip: use /cancel to abort.',
+          lang === 'ar' ? `📝 موافقة ${orderId}` : `📝 Approve ${orderId}`,
+          lang === 'ar'
+            ? `أرسل الآن تفاصيل المنتج 1/${existing.items.length}: ${existing.items[0]?.title ?? ''}`
+            : `Now send details for Product 1/${existing.items.length}: ${existing.items[0]?.title ?? ''}`,
+          lang === 'ar'
+            ? 'سأطلب منك تفاصيل كل منتج حتى انتهاء جميع المنتجات.'
+            : 'I will ask again for each next product if this order has multiple items.',
+          lang === 'ar' ? 'ملاحظة: استخدم /cancel للإلغاء.' : 'Tip: use /cancel to abort.',
         ].join('\n'),
       );
       return;
     }
     const order = await updateOrderStatus(orderId, status);
     if (!order) {
-      await answerCallbackQuery(cb.id, 'Order not found');
+      await answerCallbackQuery(cb.id, lang === 'ar' ? 'الطلب غير موجود' : 'Order not found');
       return;
     }
-    await answerCallbackQuery(cb.id, `Order ${order.id} -> ${statusLabel(status)}`);
+    await answerCallbackQuery(
+      cb.id,
+      lang === 'ar'
+        ? `الطلب ${order.id} -> ${statusLabelByLang(status, lang)}`
+        : `Order ${order.id} -> ${statusLabel(status)}`,
+    );
     const fresh = await getOrder(order.id);
     if (fresh) {
-      await sendText(chatId, `Updated: ${fresh.id} is now ${statusLabel(fresh.status)}`, orderKeyboard(fresh));
+      await sendText(
+        chatId,
+        lang === 'ar'
+          ? `تم التحديث: ${fresh.id} حالته الآن ${statusLabelByLang(fresh.status, lang)}`
+          : `Updated: ${fresh.id} is now ${statusLabel(fresh.status)}`,
+        orderKeyboard(fresh, lang),
+      );
     }
   }
 }
