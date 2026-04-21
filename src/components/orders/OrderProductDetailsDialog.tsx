@@ -33,19 +33,19 @@ export function OrderProductDetailsDialog({
     return filled;
   }, [itemTitles, productDetails, fallbackDetails]);
 
-  const isRefunded = status === 'refunded';
+  const isLockedStatus = status === 'refunded' || status === 'on_hold' || status === 'cancelled';
 
   return (
     <>
       <button
         type="button"
         onClick={() => {
-          if (isRefunded) return;
+          if (isLockedStatus) return;
           setOpen(true);
         }}
-        disabled={isRefunded}
+        disabled={isLockedStatus}
         className={`mt-4 inline-flex rounded-full border px-4 py-2 text-xs font-semibold transition-colors ${
-          isRefunded
+          isLockedStatus
             ? 'cursor-not-allowed border-edge bg-surface-elevated/70 text-muted opacity-70'
             : 'border-brand-orange/35 text-brand-orange hover:bg-brand-orange/10'
         }`}
