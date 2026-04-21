@@ -60,6 +60,10 @@
     "pageDescription": "View your previous account purchases.",
     "title": "Purchases",
     "subtitle": "Your previous orders and statuses will appear here.",
+    "signinRequiredSubtitle": "Please sign in to your account to view purchases.",
+    "signinRequiredTitle": "Sign-in required",
+    "signinRequiredHint": "Purchases are available only after login. Sign in and come back to this page.",
+    "signinCta": "Sign in",
     "emptyTitle": "No purchases yet",
     "emptyHint": "Complete a purchase and it will appear here right away.",
     "browseStore": "Browse store"

@@ -97,7 +97,7 @@ export default function MegaHeader() {
             >
               <User className="h-3.5 w-3.5 shrink-0 text-muted sm:h-4 sm:w-4 md:h-5 md:w-5" />
             </div>
-          ) : sessionStatus === 'authenticated' && session?.user ? (
+          ) : (
             <div className="relative">
               <button
                 type="button"
@@ -114,7 +114,7 @@ export default function MegaHeader() {
               >
                 <User className="h-3.5 w-3.5 shrink-0 text-brand-blue sm:h-4 sm:w-4 md:h-5 md:w-5" />
                 <span className="hidden max-w-[5.5rem] truncate text-[10px] font-bold uppercase sm:inline sm:text-[11px] md:max-w-[8rem] md:text-sm">
-                  {session.user.name ?? session.user.email ?? t('authLogin')}
+                  {session?.user?.name ?? session?.user?.email ?? t('authLogin')}
                 </span>
                 <ChevronDown
                   size={14}
@@ -131,9 +131,11 @@ export default function MegaHeader() {
                     className="absolute end-0 top-full z-[70] mt-2 min-w-[200px] rounded-xl border border-edge bg-surface-elevated p-2 shadow-xl"
                     role="menu"
                   >
-                    <div className="border-b border-edge px-3 py-2 text-[10px] text-muted sm:text-xs" dir="ltr" lang="en">
-                      {session.user.email}
-                    </div>
+                    {session?.user?.email ? (
+                      <div className="border-b border-edge px-3 py-2 text-[10px] text-muted sm:text-xs" dir="ltr" lang="en">
+                        {session.user.email}
+                      </div>
+                    ) : null}
                     <Link
                       href="/purchases"
                       role="menuitem"
@@ -194,33 +196,34 @@ export default function MegaHeader() {
                         ))}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
-                      onClick={() => {
-                        setAuthDropdown(false);
-                        void signOut({ callbackUrl: `/${locale}` });
-                      }}
-                    >
-                      <LogOut size={14} className="shrink-0 text-muted" aria-hidden />
-                      {t('authSignOut')}
-                    </button>
+                    {sessionStatus === 'authenticated' && session?.user ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
+                        onClick={() => {
+                          setAuthDropdown(false);
+                          void signOut({ callbackUrl: `/${locale}` });
+                        }}
+                      >
+                        <LogOut size={14} className="shrink-0 text-muted" aria-hidden />
+                        {t('authSignOut')}
+                      </button>
+                    ) : (
+                      <Link
+                        href="/login"
+                        role="menuitem"
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
+                        onClick={() => setAuthDropdown(false)}
+                      >
+                        <User size={14} className="shrink-0 text-muted" aria-hidden />
+                        {t('authLogin')}
+                      </Link>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
-          ) : (
-            <Link
-              href="/login"
-              className={`${controlBtnBase} border-transparent hover:border-white/10 hover:bg-white/5`}
-              aria-label={t('authLogin')}
-            >
-              <User className="h-3.5 w-3.5 shrink-0 text-brand-blue sm:h-4 sm:w-4 md:h-5 md:w-5" />
-              <span className="hidden text-[10px] font-bold uppercase sm:inline sm:text-[11px] md:text-sm">
-                {t('authLogin')}
-              </span>
-            </Link>
           )}
 
           <Link
