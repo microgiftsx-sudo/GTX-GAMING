@@ -39,10 +39,14 @@ export function OrderProductDetailsDialog({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (isRefunded) return;
+          setOpen(true);
+        }}
+        disabled={isRefunded}
         className={`mt-4 inline-flex rounded-full border px-4 py-2 text-xs font-semibold transition-colors ${
           isRefunded
-            ? 'border-edge bg-surface-elevated/70 text-muted opacity-70'
+            ? 'cursor-not-allowed border-edge bg-surface-elevated/70 text-muted opacity-70'
             : 'border-brand-orange/35 text-brand-orange hover:bg-brand-orange/10'
         }`}
       >
