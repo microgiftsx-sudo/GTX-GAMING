@@ -67,6 +67,8 @@
     "orderNumber": "Order number",
     "orderStatus": "Status",
     "deliveryDetails": "Product details",
+    "deliveryDetailsPendingHint": "Product details will appear here after delivery.",
+    "deliveryDetailsButtonHint": "Product details are available from the View product details button below.",
     "statusPending": "Pending",
     "statusProcessing": "Processing",
     "statusCompleted": "Delivered",

@@ -67,6 +67,8 @@
     "orderNumber": "رقم الطلب",
     "orderStatus": "الحالة",
     "deliveryDetails": "تفاصيل المنتج",
+    "deliveryDetailsPendingHint": "سيتم عرض تفاصيل المنتج هنا بعد التسليم.",
+    "deliveryDetailsButtonHint": "تفاصيل المنتج متاحة عبر زر عرض تفاصيل المنتجات بالأسفل.",
     "statusPending": "قيد المراجعة",
     "statusProcessing": "قيد المعالجة",
     "statusCompleted": "تم التسليم",
