@@ -1,25 +1,22 @@
-import '@/lib/load-env';
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 
-/** Read OAuth env at request time so dev/Turbopack never caches an empty provider list. */
-function googleProviders() {
-  const googleId = process.env.AUTH_GOOGLE_ID?.trim();
-  const googleSecret = process.env.AUTH_GOOGLE_SECRET?.trim();
-  if (!googleId || !googleSecret) return [];
-  return [
-    Google({
-      clientId: googleId,
-      clientSecret: googleSecret,
-      authorization: { params: { prompt: 'select_account' } },
-    }),
-  ];
-}
+const googleId = process.env.AUTH_GOOGLE_ID?.trim();
+const googleSecret = process.env.AUTH_GOOGLE_SECRET?.trim();
 
-export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
+export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
-  providers: googleProviders(),
+  providers:
+    googleId && googleSecret
+      ? [
+          Google({
+            clientId: googleId,
+            clientSecret: googleSecret,
+            authorization: { params: { prompt: 'select_account' } },
+          }),
+        ]
+      : [],
   callbacks: {
     async jwt({ token, account, profile }) {
       if (account?.provider === 'google' && profile && typeof profile === 'object') {
@@ -39,4 +36,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
       return session;
     },
   },
-}));
+});
