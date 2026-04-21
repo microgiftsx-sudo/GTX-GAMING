@@ -55,6 +55,28 @@
     "signInError": "تعذر بدء تسجيل الدخول. حاول لاحقاً.",
     "providerMissing": "لم يُضبط تسجيل الدخول بـ Google بعد. أضف AUTH_GOOGLE_ID و AUTH_GOOGLE_SECRET في إعدادات الخادم."
   },
+  "OrderFlow": {
+    "title": "تم استلام طلبك",
+    "subtitle": "يمكنك متابعة حالة الطلب الآن أو متابعة الشراء.",
+    "viewOrder": "رؤية الطلب",
+    "continueShopping": "متابعة الشراء",
+    "statusPageTitle": "حالة الطلب",
+    "statusPageDescription": "متابعة حالة الطلب وتفاصيل التسليم.",
+    "statusTitle": "حالة الطلب",
+    "statusSubtitle": "هذه آخر حالة معتمدة لطلبك.",
+    "orderNumber": "رقم الطلب",
+    "orderStatus": "الحالة",
+    "deliveryDetails": "تفاصيل التسليم",
+    "statusPending": "قيد المراجعة",
+    "statusProcessing": "قيد المعالجة",
+    "statusCompleted": "تم التسليم",
+    "statusOnHold": "معلق",
+    "statusRefunded": "مسترجع",
+    "statusCancelled": "ملغي",
+    "accessDeniedTitle": "تعذر فتح الطلب",
+    "accessDeniedHint": "رابط الطلب غير صحيح أو منتهي. استخدم الرابط الذي وصلك على بريدك.",
+    "goHome": "العودة للرئيسية"
+  },
   "Purchases": {
     "pageTitle": "مشترياتي",
     "pageDescription": "عرض المشتريات السابقة لحسابك.",

@@ -55,6 +55,28 @@
     "signInError": "Could not start sign-in. Try again later.",
     "providerMissing": "Google sign-in is not configured yet. Set AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET on the server."
   },
+  "OrderFlow": {
+    "title": "Your order was received",
+    "subtitle": "You can view order status now or continue shopping.",
+    "viewOrder": "View order",
+    "continueShopping": "Continue shopping",
+    "statusPageTitle": "Order status",
+    "statusPageDescription": "Track order status and delivery details.",
+    "statusTitle": "Order status",
+    "statusSubtitle": "This is the latest approved status for your order.",
+    "orderNumber": "Order number",
+    "orderStatus": "Status",
+    "deliveryDetails": "Delivery details",
+    "statusPending": "Pending",
+    "statusProcessing": "Processing",
+    "statusCompleted": "Delivered",
+    "statusOnHold": "On hold",
+    "statusRefunded": "Refunded",
+    "statusCancelled": "Cancelled",
+    "accessDeniedTitle": "Could not open this order",
+    "accessDeniedHint": "This link is invalid or expired. Use the link sent to your email.",
+    "goHome": "Back to home"
+  },
   "Purchases": {
     "pageTitle": "My purchases",
     "pageDescription": "View your previous account purchases.",

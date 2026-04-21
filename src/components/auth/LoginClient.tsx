@@ -63,7 +63,7 @@ export default function LoginClient() {
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="card-surface rounded-3xl border border-edge p-6 shadow-xl shadow-black/30 ring-1 ring-white/[0.04] sm:p-8">
+      <div className="card-surface rounded-[32px] border border-edge p-6 shadow-xl shadow-black/30 ring-1 ring-white/[0.04] sm:p-8">
         <div className="mb-6 text-center">
           <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">{t('title')}</h1>
           <p className="mt-2 text-sm text-muted">{t('subtitle')}</p>
@@ -110,7 +110,7 @@ export default function LoginClient() {
           type="button"
           onClick={() => void handleGoogleSignIn()}
           disabled={loading || hasGoogle !== true || !canUseGoogle}
-          className="flex w-full items-center justify-center gap-3 rounded-2xl border border-edge bg-surface-elevated py-3.5 text-sm font-semibold text-foreground shadow-inner transition hover:border-brand-orange/40 hover:bg-white/[0.04] disabled:pointer-events-none disabled:opacity-45"
+          className="flex w-full items-center justify-center gap-3 rounded-full border border-edge bg-surface-elevated py-3.5 text-sm font-semibold text-foreground shadow-inner transition hover:border-brand-orange/40 hover:bg-white/[0.04] disabled:pointer-events-none disabled:opacity-45"
         >
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin text-brand-orange" aria-hidden />
@@ -140,7 +140,10 @@ export default function LoginClient() {
         <p className="mt-4 text-center text-[11px] leading-relaxed text-faint">{t('googleLegal')}</p>
 
         <div className="mt-8 border-t border-edge pt-6 text-center">
-          <Link href="/" className="text-xs font-medium text-brand-orange hover:underline">
+          <Link
+            href="/"
+            className="inline-flex rounded-full border border-brand-orange/35 px-4 py-2 text-xs font-medium text-brand-orange transition-colors hover:bg-brand-orange/10"
+          >
             {t('backHome')}
           </Link>
         </div>

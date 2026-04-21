@@ -65,7 +65,7 @@ export default function MegaHeader() {
   };
 
   const controlBtnBase =
-    'flex min-h-9 shrink-0 items-center gap-1 rounded-lg border px-1.5 py-1.5 transition-all touch-manipulation sm:min-h-11 sm:gap-1.5 sm:rounded-xl sm:px-2 sm:py-2 md:min-h-0 md:gap-2 md:px-3 md:py-2';
+    'flex min-h-9 shrink-0 items-center gap-1 rounded-full border px-2 py-1.5 transition-all touch-manipulation sm:min-h-11 sm:gap-1.5 sm:px-3 sm:py-2 md:min-h-0 md:gap-2 md:px-4 md:py-2.5';
 
   return (
     <header className="bg-brand-dark/75 backdrop-blur-xl border-b border-edge sticky top-0 z-50 w-full shadow-[0_8px_32px_rgba(0,0,0,0.35)] pt-[env(safe-area-inset-top)]">
@@ -128,24 +128,24 @@ export default function MegaHeader() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute end-0 top-full z-[70] mt-2 min-w-[200px] rounded-xl border border-edge bg-surface-elevated p-2 shadow-xl"
+                    className="absolute end-0 top-full z-[70] mt-2 min-w-[250px] rounded-[28px] border border-edge bg-surface-elevated p-3 shadow-xl"
                     role="menu"
                   >
                     {session?.user?.email ? (
-                      <div className="border-b border-edge px-3 py-2 text-[10px] text-muted sm:text-xs" dir="ltr" lang="en">
+                      <div className="mb-2 rounded-2xl bg-white/[0.03] px-4 py-2 text-[10px] text-muted sm:text-xs" dir="ltr" lang="en">
                         {session.user.email}
                       </div>
                     ) : null}
                     <Link
                       href="/purchases"
                       role="menuitem"
-                      className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
+                      className="mt-1 flex w-full items-center gap-2 rounded-full px-4 py-2.5 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
                       onClick={() => setAuthDropdown(false)}
                     >
                       <ReceiptText size={14} className="shrink-0 text-muted" aria-hidden />
                       {t('authPurchases')}
                     </Link>
-                    <div className="mt-1 border-t border-edge px-2 pt-2">
+                    <div className="mt-2 border-t border-edge px-2 pt-2">
                       <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-faint">
                         {t('languages.ar')} / {t('languages.en')}
                       </p>
@@ -153,7 +153,7 @@ export default function MegaHeader() {
                         <button
                           type="button"
                           onClick={() => toggleLanguage('ar')}
-                          className={`w-full rounded-lg px-3 py-2 text-start text-xs font-bold transition-colors ${
+                          className={`w-full rounded-full px-4 py-2.5 text-start text-xs font-bold transition-colors ${
                             locale === 'ar'
                               ? 'bg-brand-orange text-white'
                               : 'text-white/40 hover:bg-white/5 hover:text-white'
@@ -164,7 +164,7 @@ export default function MegaHeader() {
                         <button
                           type="button"
                           onClick={() => toggleLanguage('en')}
-                          className={`w-full rounded-lg px-3 py-2 text-start text-xs font-bold transition-colors ${
+                          className={`w-full rounded-full px-4 py-2.5 text-start text-xs font-bold transition-colors ${
                             locale === 'en'
                               ? 'bg-brand-orange text-white'
                               : 'text-white/40 hover:bg-white/5 hover:text-white'
@@ -184,7 +184,7 @@ export default function MegaHeader() {
                             type="button"
                             key={currCode}
                             onClick={() => setCurrency(currCode)}
-                            className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-start text-xs font-bold transition-colors ${
+                            className={`flex w-full items-center gap-2.5 rounded-full px-4 py-2.5 text-start text-xs font-bold transition-colors ${
                               currency === currCode
                                 ? 'bg-brand-orange text-white'
                                 : 'text-white/40 hover:bg-white/5 hover:text-white'
@@ -200,7 +200,7 @@ export default function MegaHeader() {
                       <button
                         type="button"
                         role="menuitem"
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
+                        className="flex w-full items-center gap-2 rounded-full px-4 py-2.5 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
                         onClick={() => {
                           setAuthDropdown(false);
                           void signOut({ callbackUrl: `/${locale}` });
@@ -213,7 +213,7 @@ export default function MegaHeader() {
                       <Link
                         href="/login"
                         role="menuitem"
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
+                        className="flex w-full items-center gap-2 rounded-full px-4 py-2.5 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
                         onClick={() => setAuthDropdown(false)}
                       >
                         <User size={14} className="shrink-0 text-muted" aria-hidden />
@@ -228,7 +228,7 @@ export default function MegaHeader() {
 
           <Link
             href="/cart"
-            className="group relative inline-flex min-h-9 min-w-9 items-center justify-center rounded-xl border border-edge bg-surface-elevated p-2 shadow-sm shadow-black/20 transition-all hover:border-brand-orange/30 hover:bg-brand-orange/10 sm:min-h-11 sm:min-w-11 sm:rounded-2xl sm:p-2.5 md:p-3 touch-manipulation"
+            className="group relative inline-flex min-h-9 min-w-9 items-center justify-center rounded-full border border-edge bg-surface-elevated p-2 shadow-sm shadow-black/20 transition-all hover:border-brand-orange/30 hover:bg-brand-orange/10 sm:min-h-11 sm:min-w-11 sm:p-2.5 md:p-3 touch-manipulation"
           >
             <ShoppingCart className="h-[18px] w-[18px] text-white transition-colors group-hover:text-brand-orange sm:h-5 sm:w-5" />
             {itemCount > 0 && (

@@ -6,12 +6,14 @@ import { Mail, CheckCircle2, Upload, QrCode, ShieldCheck, ArrowLeft } from 'luci
 import { Link } from '@/i18n/routing';
 import { useCart } from '@/context/CartContext';
 import { useTranslations, useLocale } from 'next-intl';
+import { useRouter } from '@/i18n/routing';
 
 export default function CheckoutPage() {
   const t = useTranslations('Checkout');
   const d = useTranslations('Data');
   const ui = useTranslations('UI');
   const locale = useLocale();
+  const router = useRouter();
   const isRtl = locale === 'ar';
   const { cart, grandTotal, appliedCoupon, formatDisplayIqd, clearCart } = useCart();
   const [currentStep, setCurrentStep] = useState(0);
@@ -97,10 +99,13 @@ export default function CheckoutPage() {
         throw new Error(payload?.error ?? 'Order failed');
       }
       clearCart();
+      const orderId = String(payload.order?.id ?? '').trim();
+      const token = String(payload.order?.viewerToken ?? '').trim();
+      if (orderId && token) {
+        router.push(`/order-processing?orderId=${encodeURIComponent(orderId)}&token=${encodeURIComponent(token)}`);
+        return;
+      }
       alert(`${ui('orderSubmitted')} #${payload.order?.id ?? ''}`);
-      setCurrentStep(0);
-      setFile(null);
-      setEmail('');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : ui('noResults'));
     } finally {

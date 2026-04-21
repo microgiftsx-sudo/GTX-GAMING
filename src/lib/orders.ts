@@ -31,6 +31,8 @@ export type OrderItem = {
 
 export type OrderRecord = {
   id: string;
+  /** Public viewer token (emailed to buyer) for order-status page access. */
+  viewerToken: string;
   createdAt: string;
   updatedAt: string;
   status: OrderStatus;
@@ -43,6 +45,10 @@ export type OrderRecord = {
   receiptUrl: string;
   items: OrderItem[];
   notes?: string;
+  /** Admin-entered delivery details (sent by email + shown on order page). */
+  deliveryDetails?: string;
+  deliveredAt?: string;
+  deliveryNotifiedAt?: string;
   /** IQD sum of line items before tax */
   subtotalBeforeTax?: number;
   taxRatePercent?: number;
@@ -104,13 +110,18 @@ function createOrderId() {
   return `GTX-${y}${m}${d}-${suffix}`;
 }
 
+function createViewerToken() {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`.toUpperCase();
+}
+
 export async function createOrder(
-  input: Omit<OrderRecord, 'id' | 'createdAt' | 'updatedAt' | 'status'>,
+  input: Omit<OrderRecord, 'id' | 'viewerToken' | 'createdAt' | 'updatedAt' | 'status'>,
 ): Promise<OrderRecord> {
   const now = new Date().toISOString();
   const order: OrderRecord = {
     ...input,
     id: createOrderId(),
+    viewerToken: createViewerToken(),
     createdAt: now,
     updatedAt: now,
     status: 'pending',
@@ -130,6 +141,43 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
     ...current,
     status,
     updatedAt: new Date().toISOString(),
+  };
+  orders[idx] = next;
+  await saveOrders(orders);
+  return next;
+}
+
+export async function markOrderDelivered(
+  orderId: string,
+  deliveryDetails: string,
+): Promise<OrderRecord | null> {
+  const orders = await listOrders();
+  const idx = orders.findIndex((order) => order.id === orderId);
+  if (idx === -1) return null;
+  const current = orders[idx];
+  const now = new Date().toISOString();
+  const next: OrderRecord = {
+    ...current,
+    status: 'completed',
+    deliveryDetails: deliveryDetails.trim(),
+    deliveredAt: now,
+    updatedAt: now,
+  };
+  orders[idx] = next;
+  await saveOrders(orders);
+  return next;
+}
+
+export async function markOrderDeliveryNotified(orderId: string): Promise<OrderRecord | null> {
+  const orders = await listOrders();
+  const idx = orders.findIndex((order) => order.id === orderId);
+  if (idx === -1) return null;
+  const current = orders[idx];
+  const now = new Date().toISOString();
+  const next: OrderRecord = {
+    ...current,
+    deliveryNotifiedAt: now,
+    updatedAt: now,
   };
   orders[idx] = next;
   await saveOrders(orders);

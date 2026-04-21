@@ -1,6 +1,8 @@
 import {
   getOrder,
   listOrders,
+  markOrderDelivered,
+  markOrderDeliveryNotified,
   listPaymentMethods,
   OrderRecord,
   OrderStatus,
@@ -9,6 +11,7 @@ import {
   updatePaymentMethod,
   updateOrderStatus,
 } from '@/lib/orders';
+import { orderPublicUrl, sendOrderDeliveredEmail } from '@/lib/order-mail';
 import {
   clearPendingPaymentEdit,
   getPendingPaymentEdit,
@@ -443,6 +446,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
           `/hero_ttl — cache window (default ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h); set: /hero_ttl 6h or /hero_ttl 3600`,
           '/catalog — show catalog source; set: /catalog kinguin | /catalog plati',
           '/searchtranslate — Arabic→En search for catalog; see /searchtranslate (no args) for status & usage',
+          '/deliver ORDER_ID DELIVERY_TEXT — mark completed + email customer with order link',
         ].join('\n'),
       );
       return;
@@ -824,6 +828,48 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         return;
       }
       await sendText(chatId, `Disabled: ${updated.code}`);
+      return;
+    }
+
+    if (cmdToken === '/deliver' || text.startsWith('/deliver ')) {
+      await clearPendingPaymentEdit(userId);
+      const [, second, ...rest] = text.trim().split(/\s+/);
+      const orderId = (second ?? '').trim();
+      const details = rest.join(' ').trim();
+      if (!orderId || !details) {
+        await sendText(chatId, 'Usage: /deliver ORDER_ID delivery details text');
+        return;
+      }
+      const delivered = await markOrderDelivered(orderId, details);
+      if (!delivered) {
+        await sendText(chatId, 'Order not found.');
+        return;
+      }
+      try {
+        await sendOrderDeliveredEmail(delivered, details);
+        await markOrderDeliveryNotified(delivered.id);
+        await sendText(
+          chatId,
+          [
+            `✅ Delivered & emailed: ${delivered.id}`,
+            `Email: ${delivered.email}`,
+            `Public URL: ${orderPublicUrl(delivered)}`,
+          ].join('\n'),
+          orderKeyboard(delivered),
+        );
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await sendText(
+          chatId,
+          [
+            `Order marked completed, but email failed.`,
+            `Order: ${delivered.id}`,
+            `Error: ${msg}`,
+            `Public URL: ${orderPublicUrl(delivered)}`,
+          ].join('\n'),
+          orderKeyboard(delivered),
+        );
+      }
       return;
     }
 
