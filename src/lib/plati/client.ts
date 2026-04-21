@@ -11,11 +11,8 @@
  * Rate limits: not documented in the HTML we mirrored; use modest concurrency and retries on 429 only.
  */
 
-const DEFAULT_PLATI_SEARCH =
-  process.env.PLATI_SEARCH_URL?.trim() || 'https://plati.io/api/search.ashx';
-
-const DEFAULT_DIGISELLER_BASE =
-  process.env.DIGISELLER_API_BASE_URL?.trim() || 'https://api.digiseller.com';
+const PLATI_SEARCH_URL = 'https://plati.io/api/search.ashx';
+const DIGISELLER_API_BASE = 'https://api.digiseller.com';
 
 async function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -56,7 +53,7 @@ export type DigisellerProductData = {
 };
 
 function platiSearchUrl(): URL {
-  return new URL(DEFAULT_PLATI_SEARCH);
+  return new URL(PLATI_SEARCH_URL);
 }
 
 export async function fetchPlatiSearchPage(params: {
@@ -94,14 +91,12 @@ export async function fetchPlatiSearchPage(params: {
 export async function fetchDigisellerProductData(
   productId: number,
 ): Promise<DigisellerProductData> {
-  const base = DEFAULT_DIGISELLER_BASE.replace(/\/$/, '');
+  const base = DIGISELLER_API_BASE.replace(/\/$/, '');
   const u = new URL(`${base}/api/products/${productId}/data`);
   u.searchParams.set('currency', 'EUR');
   u.searchParams.set('lang', 'en-US');
   u.searchParams.set('format', 'json');
   u.searchParams.set('transp', 'cors');
-  const token = process.env.DIGISELLER_API_TOKEN?.trim();
-  if (token) u.searchParams.set('token', token);
 
   let lastErr: unknown;
   for (let attempt = 0; attempt <= 3; attempt++) {

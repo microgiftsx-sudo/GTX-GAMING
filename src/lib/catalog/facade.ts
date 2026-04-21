@@ -12,8 +12,8 @@ import { kinguinPriceVariantsFromJson } from '@/lib/kinguin/priceVariants';
 import type { CachedProductsArgs } from '@/lib/catalog-search-args';
 import { netFromGrossIqd } from '@/lib/tax';
 
-const PLATI_DEFAULT_QUERY =
-  process.env.PLATI_DEFAULT_SEARCH_QUERY?.trim() || 'steam';
+/** Fallback Plati search term when user query is shorter than 3 characters. */
+const PLATI_DEFAULT_QUERY = 'steam';
 
 function platiSearchQuery(userQuery: string): string {
   const q = userQuery.trim();

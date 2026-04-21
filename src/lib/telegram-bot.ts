@@ -44,6 +44,10 @@ import {
   setCatalogProvider,
   type CatalogProvider,
 } from '@/lib/catalog-provider';
+import {
+  getSearchTranslateSettings,
+  setSearchTranslateSettings,
+} from '@/lib/search-translate-settings';
 
 type TelegramApiResponse<T> = {
   ok: boolean;
@@ -438,6 +442,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
           '/trending — home trending strip IDs; set: /trending 123 456; clear: /trending clear',
           `/hero_ttl — cache window (default ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h); set: /hero_ttl 6h or /hero_ttl 3600`,
           '/catalog — show catalog source; set: /catalog kinguin | /catalog plati',
+          '/searchtranslate — Arabic→En search for catalog; see /searchtranslate (no args) for status & usage',
         ].join('\n'),
       );
       return;
@@ -478,6 +483,76 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       await sendText(
         chatId,
         `Catalog provider set to: ${saved}. Listing, hero, and trending caches were invalidated.`,
+      );
+      return;
+    }
+
+    if (cmdToken === '/searchtranslate' || text.startsWith('/searchtranslate ')) {
+      await clearPendingPaymentEdit(userId);
+      const parts = text.trim().split(/\s+/);
+      if (parts.length === 1) {
+        const s = await getSearchTranslateSettings();
+        await sendText(
+          chatId,
+          [
+            'Arabic → English catalog search (Plati/Kinguin `q`):',
+            `enabled: ${s.enabled}`,
+            `mode: ${s.mode}  (full = overrides JSON + MyMemory; dictionary = overrides only)`,
+            `myMemory email: ${s.myMemoryEmail || '(none)'}`,
+            '',
+            'Commands:',
+            '/searchtranslate on | off',
+            '/searchtranslate mode full | dictionary',
+            '/searchtranslate email you@example.com',
+            '/searchtranslate email clear',
+          ].join('\n'),
+        );
+        return;
+      }
+      const sub = (parts[1] ?? '').toLowerCase();
+      if (sub === 'on' || sub === 'enable') {
+        await setSearchTranslateSettings({ enabled: true });
+        await sendText(chatId, 'search-translate: enabled ON.');
+        return;
+      }
+      if (sub === 'off' || sub === 'disable') {
+        await setSearchTranslateSettings({ enabled: false });
+        await sendText(chatId, 'search-translate: enabled OFF.');
+        return;
+      }
+      if (sub === 'mode') {
+        const m = (parts[2] ?? '').toLowerCase();
+        if (m !== 'full' && m !== 'dictionary') {
+          await sendText(chatId, 'Usage: /searchtranslate mode full\nor: /searchtranslate mode dictionary');
+          return;
+        }
+        const saved = await setSearchTranslateSettings({
+          mode: m === 'dictionary' ? 'dictionary' : 'full',
+        });
+        await sendText(chatId, `search-translate mode: ${saved.mode}`);
+        return;
+      }
+      if (sub === 'email') {
+        const addr = parts.slice(2).join(' ').trim();
+        if (!addr || addr.toLowerCase() === 'clear' || addr === '-') {
+          await setSearchTranslateSettings({ myMemoryEmail: '' });
+          await sendText(chatId, 'MyMemory contact email cleared.');
+          return;
+        }
+        if (!addr.includes('@')) {
+          await sendText(
+            chatId,
+            'Invalid email. Example: /searchtranslate email you@example.com\nClear: /searchtranslate email clear',
+          );
+          return;
+        }
+        const saved = await setSearchTranslateSettings({ myMemoryEmail: addr });
+        await sendText(chatId, `MyMemory email saved: ${saved.myMemoryEmail}`);
+        return;
+      }
+      await sendText(
+        chatId,
+        'Unknown. Try: /searchtranslate\nor: on | off | mode full | mode dictionary | email …',
       );
       return;
     }

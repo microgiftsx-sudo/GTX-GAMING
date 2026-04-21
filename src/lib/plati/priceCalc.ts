@@ -1,5 +1,4 @@
-const DEFAULT_DIGISELLER_BASE =
-  process.env.DIGISELLER_API_BASE_URL?.trim() || 'https://api.digiseller.com';
+const DIGISELLER_API_BASE = 'https://api.digiseller.com';
 
 export type DigisellerCalcResponse = {
   retval: number;
@@ -44,7 +43,7 @@ export async function digisellerCalcPriceEur(params: {
   /** Non-fixed price quantity — sent as `unit_cnt` when set. */
   unitCnt?: number;
 }): Promise<{ ok: true; eur: number } | { ok: false; message: string }> {
-  const base = DEFAULT_DIGISELLER_BASE.replace(/\/$/, '');
+  const base = DIGISELLER_API_BASE.replace(/\/$/, '');
   const u = new URL(`${base}/api/products/price/calc`);
   u.searchParams.set('product_id', String(params.productId));
   u.searchParams.set('currency', 'EUR');
@@ -55,8 +54,6 @@ export async function digisellerCalcPriceEur(params: {
   }
   u.searchParams.set('format', 'json');
   u.searchParams.set('transp', 'cors');
-  const token = process.env.DIGISELLER_API_TOKEN?.trim();
-  if (token) u.searchParams.set('token', token);
 
   for (const s of params.selections) {
     u.searchParams.append('options[]', `${s.optionId}:${s.valueId}`);

@@ -8,11 +8,14 @@ import { getCatalogProvider } from '@/lib/catalog-provider';
 import { CATALOG_LISTING_CACHE_TAG } from '@/lib/catalog-cache-tags';
 import type { CachedProductsArgs } from '@/lib/catalog-search-args';
 import { sortCatalogItems } from '@/lib/catalog-search-rank';
+import { resolveCatalogSearchQuery } from '@/lib/search-query-translate';
 
 export type { CachedProductsArgs } from '@/lib/catalog-search-args';
 
 export async function fetchProductsUncached(args: CachedProductsArgs) {
   const { taxRate } = args;
+
+  const qForCatalog = await resolveCatalogSearchQuery(args.q);
 
   const iqdToKinguinBase = (iqd: number) =>
     taxRate > 0 ? iqd / (1 + taxRate / 100) : iqd;
@@ -28,6 +31,7 @@ export async function fetchProductsUncached(args: CachedProductsArgs) {
 
   const enriched: CachedProductsArgs = {
     ...args,
+    q: qForCatalog,
     priceFromEur: minEur,
     priceToEur: maxEur,
   };
@@ -36,7 +40,7 @@ export async function fetchProductsUncached(args: CachedProductsArgs) {
 
   let items = raw.items.map((p) => applyVatToStoreProduct(p, taxRate));
 
-  items = sortCatalogItems(items, args.sort, args.q);
+  items = sortCatalogItems(items, args.sort, qForCatalog);
 
   const total = raw.total ?? items.length;
 
