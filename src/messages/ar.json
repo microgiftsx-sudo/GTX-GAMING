@@ -88,7 +88,13 @@
     "signinCta": "تسجيل الدخول",
     "emptyTitle": "لا توجد مشتريات حتى الآن",
     "emptyHint": "ابدأ بشراء منتج، وستجده هنا مباشرة بعد إكمال الطلب.",
-    "browseStore": "تصفح المتجر"
+    "browseStore": "تصفح المتجر",
+    "statusPending": "قيد المراجعة",
+    "statusProcessing": "قيد التنفيذ",
+    "statusCompleted": "تم التسليم",
+    "statusOnHold": "معلق",
+    "statusRefunded": "مسترجع",
+    "statusCancelled": "ملغي"
   },
   "Cart": {
     "title": "سلة",

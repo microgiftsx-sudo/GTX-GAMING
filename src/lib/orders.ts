@@ -101,6 +101,13 @@ export async function getOrder(orderId: string): Promise<OrderRecord | null> {
   return orders.find((order) => order.id === orderId) ?? null;
 }
 
+export async function listOrdersByEmail(email: string): Promise<OrderRecord[]> {
+  const needle = email.trim().toLowerCase();
+  if (!needle) return [];
+  const orders = await listOrders();
+  return orders.filter((order) => order.email.trim().toLowerCase() === needle);
+}
+
 function createOrderId() {
   const ts = new Date();
   const y = ts.getUTCFullYear();
