@@ -11,7 +11,7 @@ import {
   updatePaymentMethod,
   updateOrderStatus,
 } from '@/lib/orders';
-import { orderPublicUrl, sendOrderDeliveredEmail } from '@/lib/order-mail';
+import { orderPublicUrl, sendOrderDeliveredEmail, sendOrderStatusEmail } from '@/lib/order-mail';
 import {
   clearPendingPaymentEdit,
   getPendingPaymentEdit,
@@ -1414,6 +1414,11 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     );
     const fresh = await getOrder(order.id);
     if (fresh) {
+      try {
+        await sendOrderStatusEmail(fresh, fresh.status);
+      } catch {
+        // ignore email failures in bot flow
+      }
       await sendText(
         chatId,
         lang === 'ar'

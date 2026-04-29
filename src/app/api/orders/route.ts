@@ -14,6 +14,7 @@ import { getTaxRatePercent, netFromGrossIqd } from '@/lib/tax';
 import { sendOrderToTelegram } from '@/lib/telegram-bot';
 import { getCatalogProvider } from '@/lib/catalog-provider';
 import { storefrontProductUrl } from '@/lib/catalog/facade';
+import { sendOrderCreatedEmail } from '@/lib/order-mail';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,6 +149,11 @@ export async function POST(req: NextRequest) {
       await sendOrderToTelegram(order);
     } catch (error) {
       console.error('Failed sending order to Telegram:', error);
+    }
+    try {
+      await sendOrderCreatedEmail(order);
+    } catch (error) {
+      console.error('Failed sending order-created email:', error);
     }
 
     return NextResponse.json({ ok: true, order });

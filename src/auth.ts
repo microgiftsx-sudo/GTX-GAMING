@@ -1,5 +1,7 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
+import { sendWelcomeEmail } from '@/lib/order-mail';
+import { markEmailWelcomedOnce } from '@/lib/email-notify-state';
 
 const googleId = process.env.AUTH_GOOGLE_ID?.trim();
 const googleSecret = process.env.AUTH_GOOGLE_SECRET?.trim();
@@ -18,6 +20,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ]
       : [],
   callbacks: {
+    async signIn({ account, user, profile }) {
+      if (account?.provider === 'google') {
+        const email = user?.email?.trim();
+        if (email) {
+          try {
+            const shouldSend = await markEmailWelcomedOnce(email);
+            if (shouldSend) {
+              const p = profile as { locale?: string } | undefined;
+              const locale = p?.locale?.toLowerCase().startsWith('ar') ? 'ar' : 'en';
+              await sendWelcomeEmail(email, locale);
+            }
+          } catch {
+            // ignore mail failures
+          }
+        }
+      }
+      return true;
+    },
     async jwt({ token, account, profile }) {
       if (account?.provider === 'google' && profile && typeof profile === 'object') {
         const p = profile as { name?: string; email?: string; picture?: string };

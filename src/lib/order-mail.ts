@@ -1,4 +1,4 @@
-import type { OrderRecord } from '@/lib/orders';
+import type { OrderRecord, OrderStatus } from '@/lib/orders';
 import nodemailer from 'nodemailer';
 
 function appBaseUrl(): string {
@@ -28,10 +28,40 @@ function iqd(n: number): string {
   return `${Math.round(n).toLocaleString('en-US')} IQD`;
 }
 
-export async function sendOrderDeliveredEmail(
-  order: OrderRecord,
-  deliveryDetails: string,
-): Promise<void> {
+function statusLabel(status: OrderStatus, isAr: boolean): string {
+  if (isAr) {
+    switch (status) {
+      case 'pending':
+        return 'قيد المراجعة';
+      case 'processing':
+        return 'قيد المعالجة';
+      case 'completed':
+        return 'تم التسليم';
+      case 'on_hold':
+        return 'معلّق';
+      case 'refunded':
+        return 'مسترجع';
+      case 'cancelled':
+        return 'ملغي';
+    }
+  }
+  switch (status) {
+    case 'pending':
+      return 'Pending';
+    case 'processing':
+      return 'Processing';
+    case 'completed':
+      return 'Delivered';
+    case 'on_hold':
+      return 'On Hold';
+    case 'refunded':
+      return 'Refunded';
+    case 'cancelled':
+      return 'Cancelled';
+  }
+}
+
+async function getMailer() {
   const smtpHost = process.env.ORDER_SMTP_HOST?.trim();
   const smtpPort = Number(process.env.ORDER_SMTP_PORT ?? 465);
   const smtpUser = process.env.ORDER_SMTP_USER?.trim();
@@ -39,39 +69,62 @@ export async function sendOrderDeliveredEmail(
   const smtpSecureRaw = process.env.ORDER_SMTP_SECURE?.trim();
   const smtpSecure = smtpSecureRaw ? smtpSecureRaw.toLowerCase() !== 'false' : smtpPort === 465;
   const from = process.env.ORDER_EMAIL_FROM?.trim();
-  if (!smtpHost || !smtpUser || !smtpPass || !from) return;
+  if (!smtpHost || !smtpUser || !smtpPass || !from) return null;
+
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: Number.isFinite(smtpPort) && smtpPort > 0 ? smtpPort : 465,
+    secure: smtpSecure,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
+  return { transporter, from };
+}
+
+export async function sendOrderStatusEmail(
+  order: OrderRecord,
+  status: OrderStatus,
+  extraDetails?: string,
+): Promise<void> {
+  const mailer = await getMailer();
+  if (!mailer) return;
 
   const orderUrl = orderPublicUrl(order);
   const isAr = order.locale !== 'en';
+  const statusText = statusLabel(status, isAr);
   const subject =
-    !isAr
-      ? `Your order ${order.id} has been delivered`
-      : `تم تسليم طلبك ${order.id}`;
-  const safeDetails = escapeHtml(deliveryDetails.trim());
+    isAr
+      ? `تحديث حالة طلبك ${order.id}: ${statusText}`
+      : `Order ${order.id} status updated: ${statusText}`;
+  const safeDetails = escapeHtml((extraDetails ?? '').trim());
   const createdAt = new Date(order.createdAt).toLocaleString(isAr ? 'ar-IQ' : 'en-US');
   const updatedAt = new Date(order.updatedAt).toLocaleString(isAr ? 'ar-IQ' : 'en-US');
 
   const text =
-    !isAr
+    isAr
       ? [
-          `Hello,`,
-          ``,
-          `Your order ${order.id} is now delivered.`,
-          `Delivery details: ${deliveryDetails}`,
-          ``,
-          `View order status: ${orderUrl}`,
-          ``,
-          `Thank you for shopping with us.`,
-        ].join('\n')
-      : [
           `مرحباً،`,
           ``,
-          `تم تسليم طلبك رقم ${order.id}.`,
-          `تفاصيل التسليم: ${deliveryDetails}`,
+          `تم تحديث حالة طلبك رقم ${order.id}.`,
+          `الحالة الجديدة: ${statusText}`,
+          ...(extraDetails?.trim() ? [`التفاصيل: ${extraDetails.trim()}`] : []),
           ``,
           `رابط متابعة الطلب: ${orderUrl}`,
           ``,
           `شكراً لثقتك بنا.`,
+        ].join('\n')
+      : [
+          `Hello,`,
+          ``,
+          `Your order ${order.id} status was updated.`,
+          `New status: ${statusText}`,
+          ...(extraDetails?.trim() ? [`Details: ${extraDetails.trim()}`] : []),
+          ``,
+          `View order status: ${orderUrl}`,
+          ``,
+          `Thank you for shopping with us.`,
         ].join('\n');
 
   const html = `
@@ -80,40 +133,22 @@ export async function sendOrderDeliveredEmail(
         <tr>
           <td style="padding:20px 22px;background:linear-gradient(135deg,#ff6b00 0%,#b500ff 100%);color:#fff">
             <div style="font-size:18px;font-weight:800;letter-spacing:0.3px">GTX GAMING</div>
-            <div style="font-size:13px;opacity:.9">${
-              isAr ? 'إشعار تسليم الطلب' : 'Order Delivery Notification'
-            }</div>
+            <div style="font-size:13px;opacity:.9">${isAr ? 'تحديث حالة الطلب' : 'Order Status Update'}</div>
           </td>
         </tr>
         <tr>
           <td style="padding:22px">
             <p style="margin:0 0 10px;font-size:14px">${isAr ? 'مرحباً،' : 'Hello,'}</p>
             <p style="margin:0 0 14px;font-size:15px;font-weight:700;color:#fff">
-              ${
-                isAr
-                  ? `تم تسليم طلبك رقم <span style="color:#ffb27b">${escapeHtml(order.id)}</span> بنجاح.`
-                  : `Your order <span style="color:#ffb27b">${escapeHtml(order.id)}</span> has been delivered successfully.`
-              }
+              ${isAr ? `تم تحديث حالة طلبك رقم <span style="color:#ffb27b">${escapeHtml(order.id)}</span>.` : `Your order <span style="color:#ffb27b">${escapeHtml(order.id)}</span> has been updated.`}
             </p>
 
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0 8px">
-              <tr>
-                <td style="background:#0a0c12;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:10px 12px">
-                  <div style="font-size:11px;color:#94a3b8">${isAr ? 'رقم الطلب' : 'Order ID'}</div>
-                  <div style="font-size:13px;font-weight:700;color:#fff">${escapeHtml(order.id)}</div>
-                </td>
-                <td style="width:8px"></td>
-                <td style="background:#0a0c12;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:10px 12px">
-                  <div style="font-size:11px;color:#94a3b8">${isAr ? 'الحالة' : 'Status'}</div>
-                  <div style="font-size:13px;font-weight:700;color:#4ade80">${isAr ? 'تم التسليم' : 'Delivered'}</div>
-                </td>
-              </tr>
-            </table>
-
             <div style="margin-top:10px;background:#0a0c12;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px">
-              <div style="font-size:11px;color:#94a3b8;margin-bottom:5px">${isAr ? 'تفاصيل التسليم' : 'Delivery details'}</div>
-              <div style="font-size:13px;color:#f1f5f9;white-space:pre-line">${safeDetails.replace(/\n/g, '<br/>')}</div>
+              <div style="font-size:11px;color:#94a3b8;margin-bottom:5px">${isAr ? 'الحالة الحالية' : 'Current status'}</div>
+              <div style="font-size:14px;font-weight:700;color:#4ade80">${escapeHtml(statusText)}</div>
             </div>
+
+            ${safeDetails ? `<div style="margin-top:10px;background:#0a0c12;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px"><div style="font-size:11px;color:#94a3b8;margin-bottom:5px">${isAr ? 'تفاصيل إضافية' : 'Additional details'}</div><div style="font-size:13px;color:#f1f5f9;white-space:pre-line">${safeDetails.replace(/\n/g, '<br/>')}</div></div>` : ''}
 
             <div style="margin-top:10px;background:#0a0c12;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px">
               <div style="font-size:11px;color:#94a3b8;margin-bottom:6px">${isAr ? 'ملخص الطلب' : 'Order summary'}</div>
@@ -127,29 +162,87 @@ export async function sendOrderDeliveredEmail(
                 ${isAr ? 'عرض حالة الطلب' : 'View order status'}
               </a>
             </div>
-
-            <p style="margin:14px 0 0;font-size:11px;color:#94a3b8;text-align:center">
-              ${isAr ? 'يمكنك الرجوع لهذا الرابط في أي وقت لمتابعة حالة طلبك.' : 'You can use this link anytime to track your order.'}
-            </p>
           </td>
         </tr>
       </table>
     </div>
   `;
 
-  const transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: Number.isFinite(smtpPort) && smtpPort > 0 ? smtpPort : 465,
-    secure: smtpSecure,
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
-    },
-  });
-
-  await transporter.sendMail({
-    from,
+  await mailer.transporter.sendMail({
+    from: mailer.from,
     to: order.email,
+    subject,
+    text,
+    html,
+  });
+}
+
+export async function sendOrderDeliveredEmail(
+  order: OrderRecord,
+  deliveryDetails: string,
+): Promise<void> {
+  await sendOrderStatusEmail(order, 'completed', deliveryDetails);
+}
+
+export async function sendOrderCreatedEmail(order: OrderRecord): Promise<void> {
+  const isAr = order.locale !== 'en';
+  const details = isAr
+    ? `تم إنشاء طلبك بنجاح. رقم الطلب: ${order.id}`
+    : `Your order was created successfully. Order ID: ${order.id}`;
+  await sendOrderStatusEmail(order, order.status, details);
+}
+
+export async function sendWelcomeEmail(email: string, locale: string): Promise<void> {
+  const mailer = await getMailer();
+  if (!mailer) return;
+  const isAr = locale !== 'en';
+  const base = appBaseUrl().replace(/\/+$/, '');
+  const subject = isAr ? 'مرحباً بك في GTX GAMING' : 'Welcome to GTX GAMING';
+  const text =
+    isAr
+      ? [
+          `مرحباً بك في GTX GAMING.`,
+          `تم إنشاء حسابك عبر Google بنجاح ويمكنك الآن البدء بالتسوق.`,
+          ``,
+          `رابط الموقع: ${base}`,
+        ].join('\n')
+      : [
+          `Hello,`,
+          `Welcome to GTX GAMING.`,
+          `You can now browse products and place orders.`,
+          ``,
+          `Visit: ${base}`,
+        ].join('\n')
+      ;
+
+  const html = `
+    <div style="background:#05070a;margin:0;padding:28px 14px;font-family:${isAr ? 'Tajawal,Arial,sans-serif' : 'Outfit,Arial,sans-serif'};line-height:1.7;color:#f1f5f9;direction:${isAr ? 'rtl' : 'ltr'}">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:0 auto;background:#12141c;border:1px solid rgba(255,255,255,0.08);border-radius:20px;overflow:hidden">
+        <tr>
+          <td style="padding:20px 22px;background:linear-gradient(135deg,#ff6b00 0%,#b500ff 100%);color:#fff">
+            <div style="font-size:18px;font-weight:800;letter-spacing:0.3px">GTX GAMING</div>
+            <div style="font-size:13px;opacity:.9">${isAr ? 'مرحباً بك' : 'Welcome'}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:22px">
+            <p style="margin:0 0 10px;font-size:14px">${isAr ? 'مرحباً،' : 'Hello,'}</p>
+            <p style="margin:0 0 14px;font-size:15px;font-weight:700;color:#fff">${isAr ? 'تم تسجيلك بنجاح عبر Google.' : 'You signed in successfully with Google.'}</p>
+
+            <div style="margin-top:18px;text-align:center">
+              <a href="${base}" style="display:inline-block;padding:11px 16px;border-radius:999px;background:#ff6b00;color:#fff;text-decoration:none;font-weight:700;font-size:13px">
+                ${isAr ? 'الذهاب للمتجر' : 'Go to store'}
+              </a>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  await mailer.transporter.sendMail({
+    from: mailer.from,
+    to: email,
     subject,
     text,
     html,
