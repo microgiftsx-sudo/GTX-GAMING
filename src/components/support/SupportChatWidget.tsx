@@ -201,7 +201,6 @@ export default function SupportChatWidget() {
             </div>
           </div>
 
-          {status === 'ok' && <p className="mt-2 text-xs text-emerald-400">{t('sent')}</p>}
           {status === 'error' && <p className="mt-2 text-xs text-red-300">{t('error')}</p>}
         </div>
       )}
