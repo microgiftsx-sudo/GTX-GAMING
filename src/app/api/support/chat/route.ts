@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     }
 
     const updated = await addSupportCustomerMessage(ticket.id, {
-      message,
+      text: message,
       attachment,
     });
     if (!updated) {

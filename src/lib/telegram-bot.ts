@@ -562,7 +562,7 @@ export async function sendSupportTicketMessageToTelegram(payload: SupportTelegra
       const form = new FormData();
       form.set('chat_id', String(DEFAULT_CHAT_ID));
       form.set('caption', caption);
-      const blob = new Blob([payload.mediaUpload.bytes], {
+      const blob = new Blob([Buffer.from(payload.mediaUpload.bytes)], {
         type: payload.mediaUpload.contentType || 'application/octet-stream',
       });
       if (payload.mediaUpload.kind === 'image') {
