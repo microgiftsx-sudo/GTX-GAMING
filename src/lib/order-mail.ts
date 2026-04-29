@@ -1,6 +1,5 @@
 import type { OrderRecord } from '@/lib/orders';
-
-const RESEND_API_URL = 'https://api.resend.com/emails';
+import nodemailer from 'nodemailer';
 
 function appBaseUrl(): string {
   return (
@@ -33,9 +32,14 @@ export async function sendOrderDeliveredEmail(
   order: OrderRecord,
   deliveryDetails: string,
 ): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const smtpHost = process.env.ORDER_SMTP_HOST?.trim();
+  const smtpPort = Number(process.env.ORDER_SMTP_PORT ?? 465);
+  const smtpUser = process.env.ORDER_SMTP_USER?.trim();
+  const smtpPass = process.env.ORDER_SMTP_PASS?.trim();
+  const smtpSecureRaw = process.env.ORDER_SMTP_SECURE?.trim();
+  const smtpSecure = smtpSecureRaw ? smtpSecureRaw.toLowerCase() !== 'false' : smtpPort === 465;
   const from = process.env.ORDER_EMAIL_FROM?.trim();
-  if (!apiKey || !from) return;
+  if (!smtpHost || !smtpUser || !smtpPass || !from) return;
 
   const orderUrl = orderPublicUrl(order);
   const isAr = order.locale !== 'en';
@@ -133,19 +137,22 @@ export async function sendOrderDeliveredEmail(
     </div>
   `;
 
-  await fetch(RESEND_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'content-type': 'application/json',
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: Number.isFinite(smtpPort) && smtpPort > 0 ? smtpPort : 465,
+    secure: smtpSecure,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
     },
-    body: JSON.stringify({
-      from,
-      to: [order.email],
-      subject,
-      text,
-      html,
-    }),
+  });
+
+  await transporter.sendMail({
+    from,
+    to: order.email,
+    subject,
+    text,
+    html,
   });
 }
 
