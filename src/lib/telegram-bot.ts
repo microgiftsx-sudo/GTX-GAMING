@@ -77,6 +77,10 @@ type TelegramUpdate = {
     chat: { id: number };
     from?: { id: number };
     text?: string;
+    reply_to_message?: {
+      text?: string;
+      caption?: string;
+    };
   };
   callback_query?: {
     id: string;
@@ -515,6 +519,11 @@ function normalizeFieldValue(field: PaymentEditField, raw: string): string {
     }
   }
   return v;
+}
+
+function extractTicketIdFromText(v: string): string | null {
+  const m = /\bTKT-\d{8}-[A-Z0-9]+\b/i.exec(v);
+  return m ? m[0].toUpperCase() : null;
 }
 
 export async function sendOrderToTelegram(order: OrderRecord) {
@@ -1215,6 +1224,18 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         const msg = e instanceof Error ? e.message : String(e);
         await sendText(chatId, `Error: ${msg}\nTry again or /cancel.`);
       }
+      return;
+    }
+
+    const repliedText = update.message.reply_to_message?.text ?? update.message.reply_to_message?.caption ?? '';
+    const repliedTicketId = extractTicketIdFromText(repliedText);
+    if (repliedTicketId && !text.startsWith('/')) {
+      const updated = await addSupportAgentReply(repliedTicketId, text);
+      if (!updated) {
+        await sendText(chatId, `Ticket not found: ${repliedTicketId}`);
+        return;
+      }
+      await sendText(chatId, `Reply sent to ${repliedTicketId}.`);
       return;
     }
 

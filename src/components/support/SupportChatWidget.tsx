@@ -140,16 +140,31 @@ export default function SupportChatWidget() {
           <div ref={bodyRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto pe-1">
             {!hasMessages && <p className="text-xs text-muted">{t('empty')}</p>}
             {messages.map((m) => (
-              <div key={m.id} className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm ${m.from === 'customer' ? 'ms-auto bg-brand-orange text-white' : 'me-auto bg-white/8 text-foreground'}`}>
-                {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
-                {m.attachment?.kind === 'image' && (
-                  <a href={m.attachment.url} target="_blank" rel="noreferrer" className="mt-2 block">
-                    <img src={m.attachment.url} alt={m.attachment.fileName} className="max-h-40 rounded-lg object-cover" />
-                  </a>
-                )}
-                {m.attachment?.kind === 'video' && (
-                  <video src={m.attachment.url} controls className="mt-2 max-h-44 w-full rounded-lg" />
-                )}
+              <div key={m.id} className={`flex ${m.from === 'customer' ? 'justify-end' : 'justify-start'}`}>
+                <div className="max-w-[88%]">
+                  {m.text && (
+                    <div className={`rounded-2xl px-3 py-2 text-sm ${
+                      m.from === 'customer' ? 'bg-brand-orange text-white' : 'bg-white/8 text-foreground'
+                    }`}>
+                      <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                    </div>
+                  )}
+                  {m.attachment?.kind === 'image' && (
+                    <a
+                      href={m.attachment.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`block overflow-hidden rounded-2xl border border-white/10 bg-black/20 ${m.text ? 'mt-2' : ''}`}
+                    >
+                      <img src={m.attachment.url} alt={m.attachment.fileName} className="max-h-48 w-full object-cover" />
+                    </a>
+                  )}
+                  {m.attachment?.kind === 'video' && (
+                    <div className={`overflow-hidden rounded-2xl border border-white/10 bg-black/20 ${m.text ? 'mt-2' : ''}`}>
+                      <video src={m.attachment.url} controls className="max-h-56 w-full" />
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
