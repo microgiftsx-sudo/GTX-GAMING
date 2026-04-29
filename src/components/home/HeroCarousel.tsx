@@ -158,7 +158,7 @@ export default function HeroCarousel({ initialSlides }: HeroCarouselProps) {
 
   return (
     <div className="relative w-full max-w-7xl mx-auto px-2 sm:px-4 mt-2 md:mt-8 group">
-      <div className="relative aspect-[16/10] max-h-[280px] min-h-[220px] md:aspect-auto md:h-[min(520px,58vh)] md:max-h-none md:min-h-[480px] w-full bg-surface-elevated rounded-xl md:rounded-[40px] overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.45)] border border-edge ring-1 ring-white/[0.04]">
+      <div className="relative aspect-[16/10] max-h-[300px] min-h-[230px] md:aspect-auto md:h-[min(560px,62vh)] md:max-h-none md:min-h-[500px] w-full bg-surface-elevated rounded-xl md:rounded-[40px] overflow-hidden shadow-[0_28px_60px_rgba(0,0,0,0.48)] border border-edge ring-1 ring-white/[0.04]">
         {showSkeleton ? (
           <div
             className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-surface-elevated to-surface-elevated animate-pulse"
@@ -216,7 +216,7 @@ export default function HeroCarousel({ initialSlides }: HeroCarouselProps) {
             <div className="absolute inset-x-0 bottom-0 z-20 flex max-h-[48%] flex-col justify-end text-start md:max-h-none">
               <div className="w-full bg-gradient-to-t from-brand-dark from-0% via-brand-dark/88 to-transparent to-100% px-3 pb-2 pt-8 md:from-[8%] md:via-brand-dark/[0.97] md:via-[55%] md:to-transparent md:to-[100%] md:px-10 md:pb-8 md:pt-16 lg:px-12 lg:pb-10 lg:pt-20">
                 {/* Mobile: flat on gradient — no large glass box hiding the art */}
-                <div className="mx-auto max-w-5xl max-md:space-y-2 md:rounded-[1.75rem] md:border md:border-white/[0.07] md:bg-black/45 md:p-7 md:shadow-[0_16px_48px_rgba(0,0,0,0.55)] md:backdrop-blur-md lg:p-8">
+                <div className="mx-auto max-w-5xl max-md:space-y-2 md:rounded-[1.75rem] md:border md:border-white/[0.08] md:bg-black/45 md:p-7 md:shadow-[0_16px_48px_rgba(0,0,0,0.55)] md:backdrop-blur-md lg:p-8">
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -233,7 +233,7 @@ export default function HeroCarousel({ initialSlides }: HeroCarouselProps) {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 }}
-                    className="line-clamp-2 text-sm font-bold leading-snug tracking-tight text-white sm:text-base md:mb-3 md:line-clamp-3 md:text-3xl md:leading-tight lg:line-clamp-3 lg:text-[2.35rem] lg:leading-[1.2]"
+                    className="line-clamp-2 text-sm font-bold leading-snug tracking-tight text-white sm:text-base md:mb-3 md:line-clamp-3 md:text-3xl md:leading-tight md:[text-wrap:balance] lg:line-clamp-3 lg:text-[2.35rem] lg:leading-[1.2]"
                   >
                     {current!.title}
                   </motion.h1>
@@ -349,9 +349,9 @@ export default function HeroCarousel({ initialSlides }: HeroCarouselProps) {
                   setActiveIndex(index);
                 }}
                 className={[
-                  "relative isolate overflow-hidden rounded-2xl border-2 outline-none transition-[border-color,box-shadow] duration-200 md:h-[5rem] md:w-full md:min-w-0 md:max-w-none lg:rounded-3xl",
+                  "relative isolate overflow-hidden rounded-2xl border-2 outline-none transition-[border-color,box-shadow,transform] duration-200 md:h-[5.5rem] md:w-full md:min-w-0 md:max-w-none lg:rounded-3xl",
                   active
-                    ? "border-brand-orange shadow-md shadow-brand-orange/20 ring-1 ring-brand-orange/40 md:shadow-[0_8px_24px_rgba(255,107,0,0.22)] md:ring-2"
+                    ? "scale-[1.01] border-brand-orange shadow-md shadow-brand-orange/20 ring-1 ring-brand-orange/40 md:shadow-[0_8px_24px_rgba(255,107,0,0.22)] md:ring-2"
                     : "border-white/15 hover:border-white/35",
                 ].join(" ")}
               >
@@ -370,7 +370,13 @@ export default function HeroCarousel({ initialSlides }: HeroCarouselProps) {
                   />
                 </div>
 
-                {/* intentionally no title ribbon / bottom active line */}
+                {active && (
+                  <div className="pointer-events-none absolute inset-x-2 bottom-2 rounded-lg bg-black/55 px-2 py-1 backdrop-blur-sm">
+                    <p className="line-clamp-1 text-[10px] font-semibold text-white/95">
+                      {product.title}
+                    </p>
+                  </div>
+                )}
               </button>
             );
           })}

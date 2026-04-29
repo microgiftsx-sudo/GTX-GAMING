@@ -98,9 +98,29 @@ export default function NavBar() {
               className="group relative min-w-0 py-0.5 last:max-lg:col-span-2 lg:last:col-auto lg:w-auto lg:shrink-0 lg:py-0"
             >
               <div className="flex w-full items-stretch gap-0">
+                <button
+                  type="button"
+                  className="flex min-h-9 min-w-0 flex-1 items-center gap-1.5 py-1 pe-0.5 text-xs font-medium text-muted transition-colors hover:text-foreground touch-manipulation sm:min-h-10 sm:py-1.5 lg:hidden"
+                  aria-expanded={mobileOpen}
+                  aria-controls={`nav-cat-${cat.key}`}
+                  aria-label={`${label} — ${t("openSubmenu")}`}
+                  onClick={() =>
+                    setMobileOpenKey((k) => (k === cat.key ? null : cat.key))
+                  }
+                >
+                  <span className="shrink-0 text-brand-orange/50 transition-colors group-hover:text-brand-orange [&_svg]:size-[14px]">
+                    {cat.icon}
+                  </span>
+                  <span className="min-w-0 leading-tight">{label}</span>
+                  <ChevronDown
+                    size={14}
+                    className={`ms-auto opacity-70 transition-transform duration-300 ${mobileOpen ? "rotate-180" : ""}`}
+                    aria-hidden
+                  />
+                </button>
                 <Link
                   href={href}
-                  className="flex min-h-9 min-w-0 flex-1 items-center gap-1.5 py-1 pe-0.5 text-xs font-medium text-muted transition-colors hover:text-foreground touch-manipulation sm:min-h-10 sm:py-1.5 lg:relative lg:min-h-0 lg:flex-initial lg:gap-2 lg:py-2 lg:pe-0 lg:text-sm lg:after:pointer-events-none lg:after:absolute lg:after:bottom-1 lg:after:start-0 lg:after:h-0.5 lg:after:w-full lg:after:rounded-full lg:after:bg-brand-orange lg:after:content-[''] lg:after:origin-center lg:after:scale-x-0 lg:hover:after:scale-x-100 lg:after:transition-transform lg:after:duration-200 lg:whitespace-nowrap"
+                  className="hidden min-h-9 min-w-0 flex-1 items-center gap-1.5 py-1 pe-0.5 text-xs font-medium text-muted transition-colors hover:text-foreground touch-manipulation sm:min-h-10 sm:py-1.5 lg:relative lg:flex lg:min-h-0 lg:flex-initial lg:gap-2 lg:py-2 lg:pe-0 lg:text-sm lg:after:pointer-events-none lg:after:absolute lg:after:bottom-1 lg:after:start-0 lg:after:h-0.5 lg:after:w-full lg:after:rounded-full lg:after:bg-brand-orange lg:after:content-[''] lg:after:origin-center lg:after:scale-x-0 lg:hover:after:scale-x-100 lg:after:transition-transform lg:after:duration-200 lg:whitespace-nowrap"
                 >
                   <span className="shrink-0 text-brand-orange/50 transition-colors group-hover:text-brand-orange [&_svg]:size-[14px] lg:[&_svg]:size-4">
                     {cat.icon}
@@ -112,22 +132,6 @@ export default function NavBar() {
                     aria-hidden
                   />
                 </Link>
-                <button
-                  type="button"
-                  className="inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-white/5 hover:text-foreground sm:min-h-10 sm:min-w-10 lg:hidden touch-manipulation"
-                  aria-expanded={mobileOpen}
-                  aria-controls={`nav-cat-${cat.key}`}
-                  aria-label={`${label} — ${t("openSubmenu")}`}
-                  onClick={() =>
-                    setMobileOpenKey((k) => (k === cat.key ? null : cat.key))
-                  }
-                >
-                  <ChevronDown
-                    size={14}
-                    className={`opacity-70 transition-transform duration-300 ${mobileOpen ? "rotate-180" : ""}`}
-                    aria-hidden
-                  />
-                </button>
               </div>
 
               <div
@@ -138,7 +142,7 @@ export default function NavBar() {
                 <CategoryFlyoutLinks href={href} />
               </div>
 
-              <div className="invisible absolute top-full z-50 mt-1 hidden w-48 translate-y-2 rounded-xl border border-edge bg-surface-elevated p-2 opacity-0 shadow-xl shadow-black/30 ring-1 ring-white/[0.04] transition-all duration-300 ltr:left-0 rtl:right-0 lg:block group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+              <div className="invisible absolute top-full z-50 mt-1 hidden w-48 translate-y-2 rounded-xl border border-edge bg-surface-elevated p-2 opacity-0 shadow-xl shadow-black/30 ring-1 ring-white/[0.04] transition-all duration-300 ltr:left-0 rtl:right-0 lg:block group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
                 <CategoryFlyoutLinks href={href} />
               </div>
             </div>

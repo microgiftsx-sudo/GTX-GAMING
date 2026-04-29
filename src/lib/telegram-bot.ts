@@ -92,6 +92,14 @@ const ADMIN_IDS = new Set(
     .map((x) => Number(x)),
 );
 
+export type CustomerSupportMessage = {
+  name: string;
+  contact: string;
+  message: string;
+  locale?: string;
+  pageUrl?: string;
+};
+
 function hasBotConfig() {
   return BOT_TOKEN.length > 0;
 }
@@ -504,6 +512,21 @@ export async function sendOrderToTelegram(order: OrderRecord) {
   }
 
   await sendText(DEFAULT_CHAT_ID, orderMessage(order, 'en'), kb);
+}
+
+export async function sendCustomerSupportMessageToTelegram(payload: CustomerSupportMessage) {
+  if (!DEFAULT_CHAT_ID) return;
+  const lines = [
+    '💬 New Customer Support Message',
+    `Name: ${payload.name}`,
+    `Contact: ${payload.contact}`,
+    `Locale: ${payload.locale ?? '-'}`,
+    payload.pageUrl ? `Page: ${payload.pageUrl}` : '',
+    '',
+    'Message:',
+    payload.message,
+  ].filter(Boolean);
+  await sendText(DEFAULT_CHAT_ID, lines.join('\n'));
 }
 
 export async function handleTelegramUpdate(update: TelegramUpdate) {

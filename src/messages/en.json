@@ -295,6 +295,18 @@
     "proceedToPay": "PROCEED TO PAY",
     "orderSubmitted": "Order Submitted Successfully!"
   },
+  "SupportChat": {
+    "open": "Open customer support chat",
+    "title": "Customer Support",
+    "subtitle": "Send your message and our team will reply as soon as possible.",
+    "name": "Your name",
+    "contact": "Phone or email",
+    "message": "Write your message",
+    "send": "Send message",
+    "sending": "Sending...",
+    "sent": "Your message was sent successfully.",
+    "error": "Please complete all fields correctly."
+  },
   "Search": {
     "resultsFor": "Search Results for",
     "allProducts": "Full Products Catalog",

@@ -193,8 +193,8 @@ export default function CheckoutPage() {
                 <div
                   className={
                     methods.length === 1
-                      ? 'flex flex-col items-stretch max-w-xs mx-auto gap-3'
-                      : 'flex flex-wrap justify-center gap-3'
+                      ? 'mx-auto grid max-w-xs grid-cols-1 gap-3'
+                      : 'grid grid-cols-2 gap-3'
                   }
                 >
                   {methods.map((method) => (
@@ -203,7 +203,7 @@ export default function CheckoutPage() {
                       onClick={() => setSelectedMethod(method)}
                       type="button"
                       className={`rounded-3xl border-2 flex flex-col items-center justify-center gap-3 text-center transition-all outline-none ${
-                        methods.length === 1 ? 'w-full p-5' : 'w-[calc(50%-0.375rem)] min-w-[140px] max-w-[calc(50%-0.375rem)] p-5'
+                        methods.length === 1 ? 'w-full p-5' : 'w-full p-4 sm:p-5'
                       } ${
                         selectedMethod.id === method.id 
                         ? 'bg-white/5 border-brand-orange shadow-lg' 
@@ -223,7 +223,7 @@ export default function CheckoutPage() {
                           decoding="async"
                         />
                       </div>
-                      <span className={`text-xs font-black uppercase ${
+                      <span className={`text-[11px] sm:text-xs font-black uppercase leading-tight ${
                         selectedMethod.id === method.id ? 'text-white' : 'text-white/80'
                       }`}>{method.name}</span>
                     </button>

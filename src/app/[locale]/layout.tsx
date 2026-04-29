@@ -8,6 +8,7 @@ import { CartProvider } from "@/context/CartContext";
 import { CookieConsentProvider } from "@/context/CookieConsentContext";
 import CookieBannerHost from "@/components/layout/CookieBannerHost";
 import { AuthSessionProvider } from "@/components/providers/AuthSessionProvider";
+import SupportChatWidget from "@/components/support/SupportChatWidget";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -73,6 +74,7 @@ export default async function LocaleLayout({
                   <NavBar />
                   <main className="flex-grow">{children}</main>
                   <Footer />
+                  <SupportChatWidget />
                 </div>
               </CartProvider>
               <CookieBannerHost />
