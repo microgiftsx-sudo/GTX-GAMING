@@ -298,14 +298,16 @@
   "SupportChat": {
     "open": "Open customer support chat",
     "title": "Customer Support",
-    "subtitle": "Send your message and our team will reply as soon as possible.",
-    "name": "Your name",
-    "contact": "Phone or email",
+    "subtitle": "Live chat with support. You can send text, image, or video.",
+    "ticket": "Ticket",
+    "empty": "Start the conversation now. Replies will appear here.",
     "message": "Write your message",
+    "attach": "Attach media",
+    "close": "Close chat",
     "send": "Send message",
     "sending": "Sending...",
     "sent": "Your message was sent successfully.",
-    "error": "Please complete all fields correctly."
+    "error": "Please write a message or attach media."
   },
   "Search": {
     "resultsFor": "Search Results for",

@@ -61,6 +61,10 @@ import {
   setTelegramUserLang,
   type TelegramLang,
 } from '@/lib/telegram-language-state';
+import {
+  addSupportAgentReply,
+  getSupportTicket,
+} from '@/lib/support-tickets';
 
 type TelegramApiResponse<T> = {
   ok: boolean;
@@ -92,10 +96,16 @@ const ADMIN_IDS = new Set(
     .map((x) => Number(x)),
 );
 
-export type CustomerSupportMessage = {
-  name: string;
-  contact: string;
+export type SupportTelegramPayload = {
+  ticketId: string;
   message: string;
+  attachment?: { kind: 'image' | 'video'; url: string; fileName: string };
+  mediaUpload?: {
+    kind: 'image' | 'video';
+    bytes: Uint8Array;
+    fileName: string;
+    contentType: string;
+  };
   locale?: string;
   pageUrl?: string;
 };
@@ -110,6 +120,19 @@ async function callTelegram<T>(method: string, body: Record<string, unknown>) {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
+  });
+  const data = (await response.json()) as TelegramApiResponse<T>;
+  if (!data.ok) {
+    throw new Error(data.description ?? 'Telegram API failed');
+  }
+  return data.result;
+}
+
+async function callTelegramMultipart<T>(method: string, form: FormData) {
+  if (!hasBotConfig()) return;
+  const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+    method: 'POST',
+    body: form,
   });
   const data = (await response.json()) as TelegramApiResponse<T>;
   if (!data.ok) {
@@ -458,6 +481,8 @@ function startHelpText(lang: TelegramLang) {
       '/catalog — مصدر الكاتالوج',
       '/searchtranslate — إعداد ترجمة البحث',
       '/deliver ORDER_ID DELIVERY_TEXT — تسليم الطلب وإرسال الإيميل',
+      '/ticket TICKET_ID — عرض محادثة عميل',
+      '/reply TICKET_ID MESSAGE — الرد على التذكرة',
     ].join('\n');
   }
   return [
@@ -476,6 +501,8 @@ function startHelpText(lang: TelegramLang) {
     '/catalog — show catalog source; set: /catalog kinguin | /catalog plati',
     '/searchtranslate — Arabic→En search for catalog; see /searchtranslate (no args) for status & usage',
     '/deliver ORDER_ID DELIVERY_TEXT — mark completed + email customer with order link',
+    '/ticket TICKET_ID — view customer live chat ticket',
+    '/reply TICKET_ID MESSAGE — send agent reply to ticket',
   ].join('\n');
 }
 
@@ -514,18 +541,51 @@ export async function sendOrderToTelegram(order: OrderRecord) {
   await sendText(DEFAULT_CHAT_ID, orderMessage(order, 'en'), kb);
 }
 
-export async function sendCustomerSupportMessageToTelegram(payload: CustomerSupportMessage) {
+export async function sendSupportTicketMessageToTelegram(payload: SupportTelegramPayload) {
   if (!DEFAULT_CHAT_ID) return;
-  const lines = [
-    '💬 New Customer Support Message',
-    `Name: ${payload.name}`,
-    `Contact: ${payload.contact}`,
+  const header = [
+    '💬 Live Chat Ticket',
+    `Ticket: ${payload.ticketId}`,
     `Locale: ${payload.locale ?? '-'}`,
     payload.pageUrl ? `Page: ${payload.pageUrl}` : '',
+  ].filter(Boolean).join('\n');
+  const lines = [
+    header,
     '',
-    'Message:',
-    payload.message,
+    payload.message ? `Customer: ${payload.message}` : 'Customer sent media attachment.',
+    '',
+    `Reply command: /reply ${payload.ticketId} your message`,
   ].filter(Boolean);
+  if (payload.mediaUpload) {
+    const caption = lines.join('\n').slice(0, 1000);
+    try {
+      const form = new FormData();
+      form.set('chat_id', String(DEFAULT_CHAT_ID));
+      form.set('caption', caption);
+      const blob = new Blob([payload.mediaUpload.bytes], {
+        type: payload.mediaUpload.contentType || 'application/octet-stream',
+      });
+      if (payload.mediaUpload.kind === 'image') {
+        form.set('photo', blob, payload.mediaUpload.fileName || 'image');
+        await callTelegramMultipart('sendPhoto', form);
+      } else {
+        form.set('video', blob, payload.mediaUpload.fileName || 'video');
+        await callTelegramMultipart('sendVideo', form);
+      }
+      return;
+    } catch {
+      // Fallback to plain text with media URL.
+      await sendText(
+        DEFAULT_CHAT_ID,
+        `${lines.join('\n')}${payload.attachment?.url ? `\nMedia: ${payload.attachment.url}` : ''}`,
+      );
+      return;
+    }
+  }
+  if (payload.attachment) {
+    await sendText(DEFAULT_CHAT_ID, `${lines.join('\n')}\nMedia: ${payload.attachment.url}`);
+    return;
+  }
   await sendText(DEFAULT_CHAT_ID, lines.join('\n'));
 }
 
@@ -1001,6 +1061,52 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
           orderKeyboard(delivered, lang),
         );
       }
+      return;
+    }
+
+    if (cmdToken === '/ticket' || text.startsWith('/ticket ')) {
+      await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
+      const [, ticketIdRaw] = text.trim().split(/\s+/);
+      const ticketId = (ticketIdRaw ?? '').trim();
+      if (!ticketId) {
+        await sendText(chatId, 'Usage: /ticket TKT-YYYYMMDD-XXXXX');
+        return;
+      }
+      const ticket = await getSupportTicket(ticketId);
+      if (!ticket) {
+        await sendText(chatId, `Ticket not found: ${ticketId}`);
+        return;
+      }
+      const last = ticket.messages.slice(-8);
+      const body = last
+        .map((m) => {
+          const who = m.from === 'agent' ? 'Agent' : 'Customer';
+          const textPart = m.text ? m.text : '(media only)';
+          const mediaPart = m.attachment?.url ? `\nMedia: ${m.attachment.url}` : '';
+          return `[${new Date(m.createdAt).toISOString()}] ${who}: ${textPart}${mediaPart}`;
+        })
+        .join('\n\n');
+      await sendText(chatId, [`Ticket: ${ticket.id}`, `Status: ${ticket.status}`, '', body].join('\n'));
+      return;
+    }
+
+    if (cmdToken === '/reply' || text.startsWith('/reply ')) {
+      await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
+      const [, ticketIdRaw, ...rest] = text.trim().split(/\s+/);
+      const ticketId = (ticketIdRaw ?? '').trim();
+      const replyText = rest.join(' ').trim();
+      if (!ticketId || !replyText) {
+        await sendText(chatId, 'Usage: /reply TKT-YYYYMMDD-XXXXX your reply text');
+        return;
+      }
+      const updated = await addSupportAgentReply(ticketId, replyText);
+      if (!updated) {
+        await sendText(chatId, `Ticket not found: ${ticketId}`);
+        return;
+      }
+      await sendText(chatId, `Reply added to ${ticketId}.`);
       return;
     }
 

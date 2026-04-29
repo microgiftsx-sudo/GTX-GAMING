@@ -15,3 +15,8 @@ export function getDataRoot(): string {
 export function getReceiptsDir(): string {
   return path.join(getDataRoot(), 'uploads', 'receipts');
 }
+
+/** Support chat media uploads (images/videos) — persisted under DATA_DIR. */
+export function getSupportUploadsDir(): string {
+  return path.join(getDataRoot(), 'uploads', 'support');
+}
