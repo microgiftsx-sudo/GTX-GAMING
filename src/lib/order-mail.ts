@@ -1,5 +1,6 @@
 import type { OrderRecord, OrderStatus } from '@/lib/orders';
 import nodemailer from 'nodemailer';
+import '@/lib/load-env';
 
 function appBaseUrl(): string {
   return (
@@ -62,14 +63,19 @@ function statusLabel(status: OrderStatus, isAr: boolean): string {
 }
 
 async function getMailer() {
-  const smtpHost = process.env.ORDER_SMTP_HOST?.trim();
-  const smtpPort = Number(process.env.ORDER_SMTP_PORT ?? 465);
-  const smtpUser = process.env.ORDER_SMTP_USER?.trim();
-  const smtpPass = process.env.ORDER_SMTP_PASS?.trim();
-  const smtpSecureRaw = process.env.ORDER_SMTP_SECURE?.trim();
+  const smtpHost = (process.env.ORDER_SMTP_HOST ?? process.env.SMTP_HOST)?.trim();
+  const smtpPort = Number(process.env.ORDER_SMTP_PORT ?? process.env.SMTP_PORT ?? 465);
+  const smtpUser = (process.env.ORDER_SMTP_USER ?? process.env.SMTP_USER)?.trim();
+  const smtpPass = (process.env.ORDER_SMTP_PASS ?? process.env.SMTP_PASS)?.trim();
+  const smtpSecureRaw = (process.env.ORDER_SMTP_SECURE ?? process.env.SMTP_SECURE)?.trim();
   const smtpSecure = smtpSecureRaw ? smtpSecureRaw.toLowerCase() !== 'false' : smtpPort === 465;
-  const from = process.env.ORDER_EMAIL_FROM?.trim();
-  if (!smtpHost || !smtpUser || !smtpPass || !from) return null;
+  const from = (process.env.ORDER_EMAIL_FROM ?? process.env.SMTP_FROM ?? process.env.EMAIL_FROM)?.trim();
+  if (!smtpHost || !smtpUser || !smtpPass || !from) {
+    console.warn(
+      '[mail] SMTP is not fully configured. Missing one of ORDER_SMTP_HOST/ORDER_SMTP_USER/ORDER_SMTP_PASS/ORDER_EMAIL_FROM (or SMTP_* fallback vars).',
+    );
+    return null;
+  }
 
   const transporter = nodemailer.createTransport({
     host: smtpHost,
@@ -168,13 +174,23 @@ export async function sendOrderStatusEmail(
     </div>
   `;
 
-  await mailer.transporter.sendMail({
-    from: mailer.from,
-    to: order.email,
-    subject,
-    text,
-    html,
-  });
+  try {
+    await mailer.transporter.sendMail({
+      from: mailer.from,
+      to: order.email,
+      subject,
+      text,
+      html,
+    });
+  } catch (error) {
+    console.error('[mail] Failed to send order status email', {
+      orderId: order.id,
+      to: order.email,
+      status,
+      error,
+    });
+    throw error;
+  }
 }
 
 export async function sendOrderDeliveredEmail(
@@ -240,12 +256,17 @@ export async function sendWelcomeEmail(email: string, locale: string): Promise<v
     </div>
   `;
 
-  await mailer.transporter.sendMail({
-    from: mailer.from,
-    to: email,
-    subject,
-    text,
-    html,
-  });
+  try {
+    await mailer.transporter.sendMail({
+      from: mailer.from,
+      to: email,
+      subject,
+      text,
+      html,
+    });
+  } catch (error) {
+    console.error('[mail] Failed to send welcome email', { to: email, error });
+    throw error;
+  }
 }
 

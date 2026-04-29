@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import '@/lib/load-env';
+import { auth } from '@/auth';
 import { getReceiptsDir } from '@/lib/data-root';
 import { createOrder, listPaymentMethods, OrderItem } from '@/lib/orders';
 import {
@@ -30,10 +31,17 @@ function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
     const form = await req.formData();
-    const email = String(form.get('email') ?? '').trim();
+    const formEmail = normalizeEmail(String(form.get('email') ?? ''));
+    const sessionEmail = normalizeEmail(String(session?.user?.email ?? ''));
+    const email = formEmail || sessionEmail;
     const locale = String(form.get('locale') ?? 'ar').trim();
     const paymentMethodId = String(form.get('paymentMethodId') ?? '').trim();
     const rawItems = String(form.get('items') ?? '[]');

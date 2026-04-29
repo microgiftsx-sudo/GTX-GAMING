@@ -31,8 +31,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               const locale = p?.locale?.toLowerCase().startsWith('ar') ? 'ar' : 'en';
               await sendWelcomeEmail(email, locale);
             }
-          } catch {
-            // ignore mail failures
+          } catch (error) {
+            console.error('[mail] Welcome email failed during Google sign-in', { email, error });
           }
         }
       }

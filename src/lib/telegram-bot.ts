@@ -1416,8 +1416,12 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     if (fresh) {
       try {
         await sendOrderStatusEmail(fresh, fresh.status);
-      } catch {
-        // ignore email failures in bot flow
+      } catch (error) {
+        console.error('[mail] Failed to send order status email from Telegram flow', {
+          orderId: fresh.id,
+          status: fresh.status,
+          error,
+        });
       }
       await sendText(
         chatId,
