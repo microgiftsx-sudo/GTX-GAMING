@@ -32,6 +32,78 @@ export type ProductListingPayload = {
   listingBatchSize?: number;
 };
 
+const SEARCH_MATCH_CACHE_BUMP = 'compact-query-fallback-v5';
+
+function compactSearchText(v: string): string {
+  return v
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+function tokenizedSearchText(v: string): string[] {
+  return v
+    .normalize('NFC')
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/gu)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function isSubsequence(needle: string, haystack: string): boolean {
+  if (!needle) return false;
+  let i = 0;
+  for (let j = 0; j < haystack.length && i < needle.length; j++) {
+    if (haystack[j] === needle[i]) i += 1;
+  }
+  return i === needle.length;
+}
+
+function titleMatchesLooseQuery(title: string, rawQuery: string): boolean {
+  const normalizedQuery = rawQuery.normalize('NFC').trim();
+  const compactTitle = compactSearchText(title);
+  const compactQuery = compactSearchText(normalizedQuery);
+  if (!compactTitle || !compactQuery) return false;
+  if (compactTitle.includes(compactQuery)) return true;
+
+  const queryTokens = tokenizedSearchText(normalizedQuery);
+  if (queryTokens.length >= 2) {
+    let from = 0;
+    for (const tok of queryTokens) {
+      const idx = compactTitle.indexOf(tok, from);
+      if (idx < 0) return false;
+      from = idx + tok.length;
+    }
+    return true;
+  }
+
+  // For compact one-word queries like "rustaccount", allow title token subsequences
+  // ("rust" + "account") even when extra words are between them.
+  if (!/\s/u.test(normalizedQuery)) {
+    if (compactQuery.length >= 6 && isSubsequence(compactQuery, compactTitle)) {
+      return true;
+    }
+    const titleTokens = tokenizedSearchText(title);
+    const maxWindow = Math.min(titleTokens.length, 6);
+    for (let i = 0; i < maxWindow; i++) {
+      let joined = '';
+      for (let j = i; j < maxWindow; j++) {
+        joined += titleTokens[j] ?? '';
+        if (joined === compactQuery) return true;
+        if (joined.length > compactQuery.length) break;
+      }
+    }
+  }
+
+  return false;
+}
+
+function shouldTryCompactFallback(rawQuery: string): boolean {
+  const q = rawQuery.normalize('NFC').trim();
+  if (q.length < 4) return false;
+  return compactSearchText(q).length >= 4;
+}
+
 function buildEnrichedCatalogArgs(
   args: CachedProductsArgs,
   qResolved: string,
@@ -88,7 +160,38 @@ async function fetchProductsListingCore(args: CachedProductsArgs) {
   const qForCatalog = await resolveCatalogSearchQuery(listingArgs.q);
   const enriched = buildEnrichedCatalogArgs(listingArgs, qForCatalog);
 
-  const raw = await searchCatalogUncached(enriched);
+  let raw = await searchCatalogUncached(enriched);
+  const rawQuery = listingArgs.q.normalize('NFC').trim();
+  const compactQuery = compactSearchText(rawQuery);
+  if (raw.items.length === 0 && compactQuery && shouldTryCompactFallback(rawQuery)) {
+    const isMultiWordQuery = /\s/u.test(rawQuery);
+    const firstToken = tokenizedSearchText(rawQuery)[0] ?? '';
+    const fallbackQueries = isMultiWordQuery
+      ? [compactQuery, firstToken, compactQuery.slice(0, 4)]
+      : [rawQuery.slice(0, 4)];
+    const fallbackLimit = isMultiWordQuery
+      ? Math.min(100, Math.max(enriched.limit * 3, 60))
+      : enriched.limit;
+
+    for (const fq of fallbackQueries) {
+      if (!fq) continue;
+      const fallbackRaw = await searchCatalogUncached({
+        ...enriched,
+        q: fq,
+        limit: fallbackLimit,
+      });
+      if (fallbackRaw.items.length === 0) continue;
+      const filteredItems = fallbackRaw.items.filter((p) =>
+        titleMatchesLooseQuery(p.title, rawQuery),
+      );
+      if (filteredItems.length === 0) continue;
+      raw = {
+        ...fallbackRaw,
+        items: filteredItems,
+      };
+      break;
+    }
+  }
 
   const rawBatchLen = raw.items.length;
   const accountsBrowse = args.category.includes('accounts');
@@ -139,6 +242,7 @@ export async function getCachedProductListing(args: CachedProductsArgs) {
       String(args.minPrice),
       args.maxPriceRaw === null ? '' : String(args.maxPriceRaw),
       args.category.includes('accounts') ? ACCOUNTS_LISTING_CACHE_BUMP : '',
+      SEARCH_MATCH_CACHE_BUMP,
     ],
     { revalidate: 86400, tags: [CATALOG_LISTING_CACHE_TAG] },
   )();

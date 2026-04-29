@@ -39,7 +39,7 @@ export default function Checkbox({ checked, onChange, label }: CheckboxProps) {
         </div>
       </div>
       {label && (
-        <span className={`text-xs font-medium transition-colors tracking-tight
+        <span className={`text-sm sm:text-[15px] font-medium leading-6 transition-colors tracking-tight
           ${checked ? 'text-foreground' : 'text-muted group-hover:text-foreground/80'}`}
         >
           {label}

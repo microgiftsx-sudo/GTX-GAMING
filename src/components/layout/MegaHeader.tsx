@@ -136,6 +136,17 @@ export default function MegaHeader() {
                         {session.user.email}
                       </div>
                     ) : null}
+                    {sessionStatus !== 'authenticated' || !session?.user ? (
+                      <Link
+                        href="/login"
+                        role="menuitem"
+                        className="mt-1 flex w-full items-center gap-2 rounded-full px-4 py-2.5 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
+                        onClick={() => setAuthDropdown(false)}
+                      >
+                        <User size={14} className="shrink-0 text-muted" aria-hidden />
+                        {t('authLogin')}
+                      </Link>
+                    ) : null}
                     <Link
                       href="/purchases"
                       role="menuitem"
@@ -209,17 +220,7 @@ export default function MegaHeader() {
                         <LogOut size={14} className="shrink-0 text-muted" aria-hidden />
                         {t('authSignOut')}
                       </button>
-                    ) : (
-                      <Link
-                        href="/login"
-                        role="menuitem"
-                        className="flex w-full items-center gap-2 rounded-full px-4 py-2.5 text-start text-xs font-semibold text-foreground transition-colors hover:bg-white/5"
-                        onClick={() => setAuthDropdown(false)}
-                      >
-                        <User size={14} className="shrink-0 text-muted" aria-hidden />
-                        {t('authLogin')}
-                      </Link>
-                    )}
+                    ) : null}
                   </motion.div>
                 )}
               </AnimatePresence>

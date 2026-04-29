@@ -18,7 +18,7 @@ const FilterSection = ({ title, isOpen, onToggle, children }: FilterSectionProps
   <div className="border-b border-edge py-4">
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted hover:text-foreground transition-colors mb-2"
+      className="w-full flex items-center justify-between text-sm sm:text-[15px] font-semibold uppercase tracking-[0.08em] text-muted hover:text-foreground transition-colors mb-2"
     >
       <span>{title}</span>
       <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -94,11 +94,11 @@ export default function SearchSidebar() {
   return (
     <div className="w-full lg:w-72 shrink-0 space-y-6">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-brand-orange">{t('filters')}</h2>
+        <h2 className="text-base sm:text-lg font-bold uppercase tracking-[0.1em] text-brand-orange">{t('filters')}</h2>
         <button
           type="button"
           onClick={clearFilters}
-          className="text-[10px] font-medium text-muted hover:text-foreground transition-colors uppercase tracking-wider underline-offset-2 hover:underline"
+          className="text-xs sm:text-sm font-medium text-muted hover:text-foreground transition-colors uppercase tracking-[0.08em] underline-offset-2 hover:underline"
         >
           {t('clearAll')}
         </button>
@@ -157,7 +157,7 @@ export default function SearchSidebar() {
         >
           <div className="grid grid-cols-2 gap-3 mt-2">
             <div className="space-y-1">
-              <span className="text-[10px] font-medium text-faint uppercase tracking-wider">{t('minPrice')}</span>
+              <span className="text-xs sm:text-sm font-semibold text-faint uppercase tracking-[0.08em]">{t('minPrice')}</span>
               <input
                 type="number"
                 placeholder="0"
@@ -166,11 +166,11 @@ export default function SearchSidebar() {
                 dir="ltr"
                 value={searchParams.get('minPrice') || ''}
                 onChange={(e) => handlePriceChange('min', e.target.value)}
-                className="w-full bg-surface border border-edge rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-orange/45 focus:ring-2 focus:ring-focus-ring transition-all font-medium"
+                className="w-full bg-surface border border-edge rounded-xl px-3 py-2.5 text-sm sm:text-[15px] text-foreground focus:outline-none focus:border-brand-orange/45 focus:ring-2 focus:ring-focus-ring transition-all font-medium"
               />
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-medium text-faint uppercase tracking-wider">{t('maxPrice')}</span>
+              <span className="text-xs sm:text-sm font-semibold text-faint uppercase tracking-[0.08em]">{t('maxPrice')}</span>
               <input
                 type="text"
                 placeholder="∞"
@@ -179,7 +179,7 @@ export default function SearchSidebar() {
                 dir="ltr"
                 value={searchParams.get('maxPrice') || ''}
                 onChange={(e) => handlePriceChange('max', e.target.value)}
-                className="w-full bg-surface border border-edge rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-orange/45 focus:ring-2 focus:ring-focus-ring transition-all font-medium"
+                className="w-full bg-surface border border-edge rounded-xl px-3 py-2.5 text-sm sm:text-[15px] text-foreground focus:outline-none focus:border-brand-orange/45 focus:ring-2 focus:ring-focus-ring transition-all font-medium"
               />
             </div>
           </div>

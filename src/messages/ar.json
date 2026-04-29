@@ -36,7 +36,7 @@
       "USD": "$ USD",
       "EUR": "€ EUR"
     },
-    "authLogin": "حسابي",
+    "authLogin": "تسجيل الدخول",
     "authSignOut": "تسجيل الخروج",
     "authPurchases": "المشتريات",
     "authCurrency": "العملة"
