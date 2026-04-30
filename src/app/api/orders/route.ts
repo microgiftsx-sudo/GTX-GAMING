@@ -19,6 +19,23 @@ import { sendOrderCreatedEmail } from '@/lib/order-mail';
 
 export const dynamic = 'force-dynamic';
 
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
+async function withTimeout<T>(task: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+  });
+  try {
+    return await Promise.race([task, timeoutPromise]);
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
+}
+
 type OrderItemInput = {
   id: string;
   title: string;
@@ -153,15 +170,17 @@ export async function POST(req: NextRequest) {
       await incrementCouponUse(appliedCouponCode);
     }
 
-    try {
-      await sendOrderToTelegram(order);
-    } catch (error) {
-      console.error('Failed sending order to Telegram:', error);
+    const telegramTimeoutMs = parsePositiveInt(process.env.ORDER_TELEGRAM_TIMEOUT_MS, 2500);
+    const emailTimeoutMs = parsePositiveInt(process.env.ORDER_EMAIL_TIMEOUT_MS, 5000);
+    const [telegramResult, emailResult] = await Promise.allSettled([
+      withTimeout(sendOrderToTelegram(order), telegramTimeoutMs, 'Telegram notify'),
+      withTimeout(sendOrderCreatedEmail(order), emailTimeoutMs, 'Order email'),
+    ]);
+    if (telegramResult.status === 'rejected') {
+      console.error('Failed sending order to Telegram:', telegramResult.reason);
     }
-    try {
-      await sendOrderCreatedEmail(order);
-    } catch (error) {
-      console.error('Failed sending order-created email:', error);
+    if (emailResult.status === 'rejected') {
+      console.error('Failed sending order-created email:', emailResult.reason);
     }
 
     return NextResponse.json({ ok: true, order });

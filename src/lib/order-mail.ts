@@ -70,6 +70,9 @@ async function getMailer() {
   const smtpSecureRaw = (process.env.ORDER_SMTP_SECURE ?? process.env.SMTP_SECURE)?.trim();
   const smtpSecure = smtpSecureRaw ? smtpSecureRaw.toLowerCase() !== 'false' : smtpPort === 465;
   const from = (process.env.ORDER_EMAIL_FROM ?? process.env.SMTP_FROM ?? process.env.EMAIL_FROM)?.trim();
+  const connectionTimeoutMs = Number(process.env.ORDER_SMTP_CONNECTION_TIMEOUT_MS ?? 5000);
+  const greetingTimeoutMs = Number(process.env.ORDER_SMTP_GREETING_TIMEOUT_MS ?? 5000);
+  const socketTimeoutMs = Number(process.env.ORDER_SMTP_SOCKET_TIMEOUT_MS ?? 8000);
   if (!smtpHost || !smtpUser || !smtpPass || !from) {
     console.warn(
       '[mail] SMTP is not fully configured. Missing one of ORDER_SMTP_HOST/ORDER_SMTP_USER/ORDER_SMTP_PASS/ORDER_EMAIL_FROM (or SMTP_* fallback vars).',
@@ -81,6 +84,11 @@ async function getMailer() {
     host: smtpHost,
     port: Number.isFinite(smtpPort) && smtpPort > 0 ? smtpPort : 465,
     secure: smtpSecure,
+    connectionTimeout:
+      Number.isFinite(connectionTimeoutMs) && connectionTimeoutMs > 0 ? connectionTimeoutMs : 5000,
+    greetingTimeout:
+      Number.isFinite(greetingTimeoutMs) && greetingTimeoutMs > 0 ? greetingTimeoutMs : 5000,
+    socketTimeout: Number.isFinite(socketTimeoutMs) && socketTimeoutMs > 0 ? socketTimeoutMs : 8000,
     auth: {
       user: smtpUser,
       pass: smtpPass,
