@@ -57,6 +57,10 @@ import {
   setSearchTranslateSettings,
 } from '@/lib/search-translate-settings';
 import {
+  isDeliveryEmailEnabled,
+  setDeliveryEmailEnabled,
+} from '@/lib/delivery-email-settings';
+import {
   getTelegramUserLang,
   setTelegramUserLang,
   type TelegramLang,
@@ -484,7 +488,8 @@ function startHelpText(lang: TelegramLang) {
       `/hero_ttl — مدة كاش الهيرو (الافتراضي ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h)`,
       '/catalog — مصدر الكاتالوج',
       '/searchtranslate — إعداد ترجمة البحث',
-      '/deliver ORDER_ID DELIVERY_TEXT — تسليم الطلب وإرسال الإيميل',
+      '/deliverymail — تشغيل/إيقاف إرسال تفاصيل التسليم للبريد (الافتراضي: إيقاف)',
+      '/deliver ORDER_ID DELIVERY_TEXT — تسليم الطلب (ويرسل إيميل فقط إذا deliverymail on)',
       '/ticket TICKET_ID — عرض محادثة عميل',
       '/reply TICKET_ID MESSAGE — الرد على التذكرة',
     ].join('\n');
@@ -504,7 +509,8 @@ function startHelpText(lang: TelegramLang) {
     `/hero_ttl — cache window (default ${DEFAULT_HERO_CACHE_TTL_SECONDS / 3600}h); set: /hero_ttl 6h or /hero_ttl 3600`,
     '/catalog — show catalog source; set: /catalog kinguin | /catalog plati',
     '/searchtranslate — Arabic→En search for catalog; see /searchtranslate (no args) for status & usage',
-    '/deliver ORDER_ID DELIVERY_TEXT — mark completed + email customer with order link',
+    '/deliverymail — toggle delivery-details email sending (default: off)',
+    '/deliver ORDER_ID DELIVERY_TEXT — mark completed (emails only when deliverymail on)',
     '/ticket TICKET_ID — view customer live chat ticket',
     '/reply TICKET_ID MESSAGE — send agent reply to ticket',
   ].join('\n');
@@ -1045,6 +1051,19 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         await sendText(chatId, 'Order not found.');
         return;
       }
+      const deliveryEmailEnabled = await isDeliveryEmailEnabled();
+      if (!deliveryEmailEnabled) {
+        await sendText(
+          chatId,
+          [
+            `✅ Delivered: ${delivered.id}`,
+            'Delivery email is currently OFF (/deliverymail on to enable).',
+            `Public URL: ${orderPublicUrl(delivered)}`,
+          ].join('\n'),
+          orderKeyboard(delivered, lang),
+        );
+        return;
+      }
       try {
         await sendOrderDeliveredEmail(delivered, delivered.deliveryDetails ?? details);
         await markOrderDeliveryNotified(delivered.id);
@@ -1070,6 +1089,35 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
           orderKeyboard(delivered, lang),
         );
       }
+      return;
+    }
+
+    if (cmdToken === '/deliverymail' || text.startsWith('/deliverymail ')) {
+      await clearPendingPaymentEdit(userId);
+      await clearPendingOrderDelivery(userId);
+      const parts = text.trim().split(/\s+/);
+      if (parts.length === 1) {
+        const enabled = await isDeliveryEmailEnabled();
+        await sendText(
+          chatId,
+          enabled
+            ? 'Delivery email mode: ON\nCustomers will receive delivery-details emails.'
+            : 'Delivery email mode: OFF\nNo delivery-details emails will be sent.\nEnable with: /deliverymail on',
+        );
+        return;
+      }
+      const action = (parts[1] ?? '').toLowerCase();
+      if (action === 'on' || action === 'enable') {
+        await setDeliveryEmailEnabled(true);
+        await sendText(chatId, 'Delivery email mode set to: ON');
+        return;
+      }
+      if (action === 'off' || action === 'disable') {
+        await setDeliveryEmailEnabled(false);
+        await sendText(chatId, 'Delivery email mode set to: OFF');
+        return;
+      }
+      await sendText(chatId, 'Usage: /deliverymail on | off');
       return;
     }
 
@@ -1165,6 +1213,19 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         return;
       }
       await clearPendingOrderDelivery(userId);
+      const deliveryEmailEnabled = await isDeliveryEmailEnabled();
+      if (!deliveryEmailEnabled) {
+        await sendText(
+          chatId,
+          [
+            `✅ Delivered: ${delivered.id}`,
+            'Delivery email is currently OFF (/deliverymail on to enable).',
+            `Public URL: ${orderPublicUrl(delivered)}`,
+          ].join('\n'),
+          orderKeyboard(delivered, lang),
+        );
+        return;
+      }
       try {
         await sendOrderDeliveredEmail(
           delivered,
@@ -1241,7 +1302,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     await sendText(
       chatId,
-      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero, /trending, /hero_ttl, /catalog',
+      'Unknown command. Use /orders, /payments, /tax, /calc, /gencoupon, /coupons, /hero, /trending, /hero_ttl, /catalog, /deliverymail',
     );
     return;
   }

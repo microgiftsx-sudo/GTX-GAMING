@@ -3,10 +3,10 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const root = path.join(__dirname, "..");
-const r = spawnSync("npx", ["next", "start"], {
+const nextBin = require.resolve("next/dist/bin/next");
+const r = spawnSync(process.execPath, [nextBin, "start"], {
   stdio: "inherit",
   env: process.env,
-  shell: true,
   cwd: root,
 });
 process.exit(r.status ?? 1);
