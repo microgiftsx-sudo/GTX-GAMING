@@ -29,7 +29,45 @@ export default function SupportChatWidget() {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<'idle' | 'ok' | 'error' | 'loading'>('idle');
+  const [hasUnreadAgentReply, setHasUnreadAgentReply] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const knownMessageIdsRef = useRef<Set<string>>(new Set());
+  const bootstrappedMessagesRef = useRef(false);
+
+  const playAgentReplyTone = () => {
+    if (typeof window === 'undefined') return;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    try {
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const tones = [
+        { f: 1318.5, d: 0.08, gap: 0.02 },
+        { f: 1108.7, d: 0.08, gap: 0.02 },
+        { f: 1760.0, d: 0.12, gap: 0 },
+      ];
+      let offset = 0;
+      for (const tone of tones) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = tone.f;
+        gain.gain.setValueAtTime(0.0001, now + offset);
+        gain.gain.linearRampToValueAtTime(0.12, now + offset + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + tone.d);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + tone.d);
+        offset += tone.d + tone.gap;
+      }
+      window.setTimeout(() => void ctx.close(), 650);
+    } catch {
+      // ignore audio API failures
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -64,6 +102,45 @@ export default function SupportChatWidget() {
     if (!open) return;
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, open]);
+
+  useEffect(() => {
+    if (open && hasUnreadAgentReply) {
+      setHasUnreadAgentReply(false);
+    }
+  }, [open, hasUnreadAgentReply]);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    if (!bootstrappedMessagesRef.current) {
+      for (const m of messages) knownMessageIdsRef.current.add(m.id);
+      bootstrappedMessagesRef.current = true;
+      return;
+    }
+    const newAgentReply = messages.some(
+      (m) => m.from === 'agent' && !knownMessageIdsRef.current.has(m.id),
+    );
+    for (const m of messages) knownMessageIdsRef.current.add(m.id);
+    if (newAgentReply) {
+      if (!open) setHasUnreadAgentReply(true);
+      playAgentReplyTone();
+    }
+  }, [messages, open]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (!open) return;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevBodyOverscroll = document.body.style.overscrollBehavior;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    return () => {
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      document.body.style.overscrollBehavior = prevBodyOverscroll;
+    };
+  }, [open]);
 
   const submit = async () => {
     if (sending) return;
@@ -108,20 +185,35 @@ export default function SupportChatWidget() {
 
   const hasMessages = messages.length > 0;
   const selectedMediaLabel = useMemo(() => mediaFile?.name ?? '', [mediaFile]);
+  const mediaPreviewUrl = useMemo(() => {
+    if (!mediaFile) return '';
+    return URL.createObjectURL(mediaFile);
+  }, [mediaFile]);
+  const mediaIsImage = mediaFile?.type.startsWith('image/') ?? false;
+  const mediaIsVideo = mediaFile?.type.startsWith('video/') ?? false;
+
+  useEffect(() => {
+    return () => {
+      if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
+    };
+  }, [mediaPreviewUrl]);
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 end-5 z-[90] inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-orange text-white shadow-xl shadow-brand-orange/40 transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-5 end-5 z-[90] inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-orange text-white transition-transform hover:scale-105 active:scale-95"
         aria-label={t('open')}
       >
+        {hasUnreadAgentReply && (
+          <span className="absolute -end-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-surface-elevated bg-red-500" />
+        )}
         {open ? <X size={20} /> : <MessageCircle size={20} />}
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[90] flex h-[100dvh] w-screen flex-col bg-surface-elevated px-3 pb-3 pt-1 md:bottom-20 md:end-5 md:inset-auto md:h-[min(72vh,560px)] md:w-[min(94vw,390px)] md:rounded-2xl md:border md:border-edge md:px-3 md:pb-3 md:pt-2 md:shadow-2xl">
+        <div className="fixed inset-0 z-[90] flex h-[100svh] w-screen flex-col overflow-hidden overscroll-none bg-surface-elevated px-3 pb-3 pt-1 md:bottom-20 md:end-5 md:inset-auto md:h-[min(72vh,560px)] md:w-[min(94vw,390px)] md:rounded-2xl md:border md:border-edge md:px-3 md:pb-3 md:pt-2 md:shadow-2xl">
           <div className="mb-2 border-b border-edge pb-2">
             <div className="mb-0 flex justify-end">
               <button
@@ -137,7 +229,7 @@ export default function SupportChatWidget() {
             <p className="text-xs text-muted">{t('subtitle')}</p>
           </div>
 
-          <div ref={bodyRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto pe-1">
+          <div ref={bodyRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pe-1">
             {!hasMessages && <p className="text-xs text-muted">{t('empty')}</p>}
             {messages.map((m) => (
               <div key={m.id} className={`flex ${m.from === 'customer' ? 'justify-end' : 'justify-start'}`}>
@@ -169,9 +261,36 @@ export default function SupportChatWidget() {
             ))}
           </div>
 
-          <div className="mt-2 border-t border-edge pt-2">
+          <form
+            className="mt-2 border-t border-edge pt-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit();
+            }}
+          >
             {selectedMediaLabel && (
-              <p className="mb-2 truncate text-[11px] text-muted">{selectedMediaLabel}</p>
+              <div className="mb-2 overflow-hidden rounded-xl border border-edge bg-surface px-2 py-2">
+                <div className="mb-1 flex items-start justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMediaFile(null)}
+                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-edge text-[11px] text-muted hover:text-foreground"
+                    aria-label="Remove selected media"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+                {mediaPreviewUrl && mediaIsImage && (
+                  <img
+                    src={mediaPreviewUrl}
+                    alt={selectedMediaLabel}
+                    className="max-h-28 w-auto rounded-md object-cover"
+                  />
+                )}
+                {mediaPreviewUrl && mediaIsVideo && (
+                  <video src={mediaPreviewUrl} className="max-h-32 w-auto rounded-md" muted controls />
+                )}
+              </div>
             )}
             <div className="flex items-center gap-2">
               <label className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-edge text-muted hover:bg-white/5 hover:text-foreground">
@@ -186,12 +305,17 @@ export default function SupportChatWidget() {
               <input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void submit();
+                  }
+                }}
                 placeholder={t('message')}
                 className="h-10 min-w-0 flex-1 rounded-full border border-edge bg-surface px-3 text-sm text-foreground outline-none focus:border-brand-orange/40"
               />
               <button
-                type="button"
-                onClick={submit}
+                type="submit"
                 disabled={sending}
                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-orange text-white transition-colors hover:bg-brand-orange/90 disabled:opacity-60"
                 aria-label={sending || status === 'loading' ? t('sending') : t('send')}
@@ -199,7 +323,7 @@ export default function SupportChatWidget() {
                 <Send size={15} />
               </button>
             </div>
-          </div>
+          </form>
 
           {status === 'error' && <p className="mt-2 text-xs text-red-300">{t('error')}</p>}
         </div>
