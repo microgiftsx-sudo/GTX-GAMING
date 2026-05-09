@@ -193,6 +193,8 @@
     "uploadProof": "رفع الوصل",
     "uploadDesc": "سيقوم فريقنا بالتحقق من المعاملة وإرسال المفتاح إلى {email} خلال 5-10 دقائق.",
     "selectFile": "اختر صورة الوصل",
+    "copyAccount": "نسخ",
+    "copied": "تم النسخ",
     "secure": "تشفير آمن بواسطة GTX Quantum",
     "submitOrder": "إرسال الطلب الآن"
   },

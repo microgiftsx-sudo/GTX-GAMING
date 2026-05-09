@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, CheckCircle2, Upload, QrCode, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Mail, CheckCircle2, Upload, QrCode, ShieldCheck, ArrowLeft, Copy } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { useCart } from '@/context/CartContext';
 import { useTranslations, useLocale } from 'next-intl';
@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [copiedAccount, setCopiedAccount] = useState(false);
 
   const STEPS = [
     { id: 'email', title: t('steps.email') },
@@ -110,6 +111,30 @@ export default function CheckoutPage() {
       setSubmitError(error instanceof Error ? error.message : ui('noResults'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const copyAccountNumber = async () => {
+    const account = selectedMethod.account?.trim();
+    if (!account) return;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(account);
+      } else if (typeof document !== 'undefined') {
+        const ta = document.createElement('textarea');
+        ta.value = account;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedAccount(true);
+      window.setTimeout(() => setCopiedAccount(false), 1800);
+    } catch {
+      setCopiedAccount(false);
     }
   };
 
@@ -255,7 +280,22 @@ export default function CheckoutPage() {
                 <div className="bg-brand-dark p-6 rounded-3xl border border-white/5 space-y-4">
                   <div className="flex items-center justify-between border-b border-white/5 pb-4">
                     <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{t('accountNumber')}</span>
-                    <span className="text-lg font-black text-white" lang="en" translate="no">{selectedMethod.account}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-black text-white" lang="en" translate="no">{selectedMethod.account}</span>
+                      <button
+                        type="button"
+                        onClick={copyAccountNumber}
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+                          copiedAccount
+                            ? 'border-brand-orange/60 bg-brand-orange/15 text-brand-orange'
+                            : 'border-white/15 bg-white/5 text-white hover:bg-white/10'
+                        }`}
+                        aria-label={copiedAccount ? t('copied') : t('copyAccount')}
+                        title={copiedAccount ? t('copied') : t('copyAccount')}
+                      >
+                        <Copy size={16} strokeWidth={2.4} />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{t('amount')}</span>

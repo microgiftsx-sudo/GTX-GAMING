@@ -193,6 +193,8 @@
     "uploadProof": "Upload Proof",
     "uploadDesc": "Our team will verify the transaction and send the key to {email} within 5-10 minutes.",
     "selectFile": "Select Receipt Image",
+    "copyAccount": "Copy",
+    "copied": "Copied",
     "secure": "GTX Quantum Encrypted",
     "submitOrder": "SUBMIT ORDER NOW"
   },

@@ -1,0 +1,59 @@
+[
+  {
+    "id": "TKT-20260429-NUVBL",
+    "locale": "ar",
+    "status": "open",
+    "createdAt": "2026-04-29T16:12:06.564Z",
+    "updatedAt": "2026-04-29T16:12:06.572Z",
+    "messages": [
+      {
+        "id": "mok96fqk-4vkh9e",
+        "from": "customer",
+        "createdAt": "2026-04-29T16:12:06.572Z",
+        "text": "CXV"
+      }
+    ]
+  },
+  {
+    "id": "TKT-20260429-OZ5ZJ",
+    "locale": "ar",
+    "status": "open",
+    "createdAt": "2026-04-29T14:43:18.735Z",
+    "updatedAt": "2026-04-29T14:43:18.738Z",
+    "messages": [
+      {
+        "id": "mok608r6-jzmby6",
+        "from": "customer",
+        "createdAt": "2026-04-29T14:43:18.738Z"
+      }
+    ]
+  },
+  {
+    "id": "TKT-20260429-U915N",
+    "locale": "ar",
+    "status": "open",
+    "createdAt": "2026-04-29T14:42:57.325Z",
+    "updatedAt": "2026-04-29T14:42:57.328Z",
+    "messages": [
+      {
+        "id": "mok5zs8g-t267tk",
+        "from": "customer",
+        "createdAt": "2026-04-29T14:42:57.328Z"
+      }
+    ]
+  },
+  {
+    "id": "TKT-20260429-2QP0R",
+    "locale": "ar",
+    "status": "open",
+    "createdAt": "2026-04-29T14:42:36.008Z",
+    "updatedAt": "2026-04-29T14:42:36.010Z",
+    "messages": [
+      {
+        "id": "mok5zbsa-3e6hdf",
+        "from": "customer",
+        "createdAt": "2026-04-29T14:42:36.010Z"
+      }
+    ]
+  }
+]

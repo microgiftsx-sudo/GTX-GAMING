@@ -1,0 +1,70 @@
+[
+  {
+    "email": "momogogo698@gmail.com",
+    "locale": "en",
+    "paymentMethodId": "fib",
+    "paymentMethodName": "First Bank (FIB)",
+    "subtotal": 15952,
+    "receiptUrl": "http://localhost:3000/api/uploads/receipt/1777496053467-1614594726blobid0.jpg",
+    "items": [
+      {
+        "id": "259122",
+        "title": "DOOM Eternal: The Ancient Gods - Part Two EU PC Steam CD Key",
+        "price": 15952,
+        "quantity": 1,
+        "image": "https://static.kinguin.net/media/catalog/category/cache/1/hi_image/9df78eab33525d08d6e5fb8d27136e95/ancientgods28.jpg",
+        "kinguinUrl": "https://www.kinguin.net/product/259122"
+      }
+    ],
+    "subtotalBeforeTax": 15952,
+    "taxRatePercent": 0,
+    "taxAmount": 0,
+    "id": "GTX-20260429-I5T10E",
+    "viewerToken": "MOKJ98M5Z5K1NEDIK4",
+    "createdAt": "2026-04-29T20:54:13.469Z",
+    "updatedAt": "2026-04-29T20:54:13.469Z",
+    "status": "processing"
+  },
+  {
+    "email": "momogogo698@gmail.com",
+    "locale": "en",
+    "paymentMethodId": "fib",
+    "paymentMethodName": "First Bank (FIB)",
+    "subtotal": 195756,
+    "receiptUrl": "http://localhost:3000/api/uploads/receipt/1777495871346-next-env.d.ts",
+    "items": [
+      {
+        "id": "409789",
+        "title": "Mall Simulator PC Steam Account",
+        "price": 9290,
+        "quantity": 7,
+        "image": "https://static.kinguin.net/media/images/products/000_202508181422_Mall_800.png",
+        "kinguinUrl": "https://www.kinguin.net/product/409789"
+      },
+      {
+        "id": "452055",
+        "title": "Forza Horizon 6 Premium Edition PRE-ORDER Xbox Series X|S / PC CD Key",
+        "price": 126758,
+        "quantity": 1,
+        "image": "https://static.kinguin.net/media/images/products/000_202603250942_forza6_premium_big.jpg",
+        "kinguinUrl": "https://www.kinguin.net/product/452055"
+      },
+      {
+        "id": "319380",
+        "title": "Risk of Rain LATAM PC Steam CD Key",
+        "price": 3968,
+        "quantity": 1,
+        "image": "https://static.kinguin.net/media/catalog/category/cache/1/hi_image/9df78eab33525d08d6e5fb8d27136e95/risk-of-rain-switch-hero_2.jpg",
+        "kinguinUrl": "https://www.kinguin.net/product/319380"
+      }
+    ],
+    "subtotalBeforeTax": 195756,
+    "taxRatePercent": 0,
+    "taxAmount": 0,
+    "id": "GTX-20260429-34ZRJ4",
+    "viewerToken": "MOKJ5C37JTBAUYC5QC",
+    "createdAt": "2026-04-29T20:51:11.347Z",
+    "updatedAt": "2026-04-29T20:51:11.347Z",
+    "status": "processing"
+  }
+]
